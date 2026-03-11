@@ -1,0 +1,96 @@
+/**
+ * global-setup.ts — Playwright global setup hook.
+ *
+ * Fetches a fresh gstoken from the mock-operator API before every test run.
+ * Requires USERNAME and PASSWORD in .env (launcher credentials).
+ *
+ * Flow:
+ *   1. POST /api/auth/token  → launcher JWT
+ *   2. GET  /conf/config.json → apiUrl
+ *   3. POST {apiUrl}/game/url → game URL with fresh gstoken for sands-of-fortune
+ *   4. Overwrite process.env.GAME_URL and GAME_URL_DEBUG for this run
+ */
+
+import * as dotenv from 'dotenv';
+
+dotenv.config();
+
+const LAUNCHER_BASE = 'https://launcher.avocadospins.com';
+const GAME_PARAMS   = '&mode=demo&locale=en&et=tr';  // et=tr for Sands of Fortune
+
+async function fetchJson<T>(url: string, opts: RequestInit): Promise<T> {
+  const res = await fetch(url, opts);
+  if (!res.ok) throw new Error(`HTTP ${res.status} from ${url}: ${await res.text()}`);
+  return res.json() as Promise<T>;
+}
+
+export default async function globalSetup(): Promise<void> {
+  const username = process.env['USERNAME'];
+  const password = process.env['PASSWORD'];
+
+  if (!username || !password) {
+    console.log('[global-setup] No USERNAME/PASSWORD in .env — using existing GAME_URL as-is.');
+    return;
+  }
+
+  try {
+    // 1. Get launcher auth JWT
+    const { token } = await fetchJson<{ token: string }>(
+      `${LAUNCHER_BASE}/api/auth/token`,
+      {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ username, password }),
+      },
+    );
+
+    // 2. Resolve the operator API base URL
+    const { apiUrl } = await fetchJson<{ apiUrl: string }>(
+      `${LAUNCHER_BASE}/conf/config.json`,
+      { headers: { Authorization: `Bearer ${token}` } },
+    );
+
+    // 3. Request a fresh game URL for Sands of Fortune
+    const { url: gameUrl } = await fetchJson<{ url: string }>(
+      `${apiUrl}/game/url`,
+      {
+        method:  'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization:  `Bearer ${token}`,
+          Accept:         'application/json, *.*',
+        },
+        body: JSON.stringify({
+          gameId:     'sands-of-fortune',   // ← Sands of Fortune game ID
+          mode:       'demo',
+          currency:   'EUR',
+          locale:     'en',
+          brandId:    'tr',                  // ← et=tr engine
+          playerId:   'player1',
+          platform:   'web',
+          lobbyUrl:   `${LAUNCHER_BASE}/`,
+          minBet:     null,
+          maxBet:     10_000,
+          defaultBet: 1.0,
+        }),
+      },
+    );
+
+    process.env['GAME_URL']       = gameUrl + GAME_PARAMS.replace('?', '&');
+    process.env['GAME_URL_DEBUG'] = `${gameUrl}${GAME_PARAMS.replace('?', '&')}&debug=true`;
+
+    // Log iat for diagnostics
+    try {
+      const tokenPart = gameUrl.split('gstoken=')[1]?.split('&')[0] ?? '';
+      const payload   = JSON.parse(
+        Buffer.from(tokenPart.split('.')[1] ?? '', 'base64').toString(),
+      ) as Record<string, number>;
+      console.log(`[global-setup] Fresh gstoken obtained (iat: ${payload['iat']})`);
+    } catch {
+      console.log('[global-setup] Fresh gstoken obtained.');
+    }
+
+  } catch (err) {
+    console.error('[global-setup] Token refresh failed — tests will use existing GAME_URL:', (err as Error).message);
+  }
+}

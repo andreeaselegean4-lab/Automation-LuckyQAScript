@@ -1,0 +1,31 @@
+{
+  "name": "sands-of-fortune-automation",
+  "version": "1.0.0",
+  "description": "Playwright + TypeScript automation suite for Sands of Fortune: Hold & Win (et=tr engine)",
+  "private": true,
+  "scripts": {
+    "test":          "playwright test",
+    "test:smoke":    "playwright test tests/01-smoke.spec.ts",
+    "test:spin":     "playwright test tests/02-spin-cycle.spec.ts",
+    "test:bet":      "playwright test tests/03-bet-controls.spec.ts",
+    "test:autoplay": "playwright test tests/04-autoplay.spec.ts",
+    "test:turbo":    "playwright test tests/05-turbo.spec.ts",
+    "test:api":      "playwright test tests/06-api-contract.spec.ts",
+    "test:payout":   "playwright test tests/07-win-payout.spec.ts",
+    "test:endurance":"playwright test tests/08-endurance.spec.ts",
+    "test:rng":      "playwright test tests/09-rng-stats.spec.ts",
+    "test:edge":     "playwright test tests/10-edge-cases.spec.ts",
+    "test:bonus":    "playwright test tests/11-bonus-trigger.spec.ts",
+    "test:responsive":"playwright test tests/12-responsive.spec.ts",
+    "test:network":  "playwright test tests/13-network-interruption.spec.ts",
+    "test:session":  "playwright test tests/14-session-persistence.spec.ts",
+    "test:fast":     "playwright test --grep-invert @slow",
+    "report":        "playwright show-report"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.49.0",
+    "@types/node":      "^22.0.0",
+    "dotenv":           "^16.4.5",
+    "typescript":       "^5.6.0"
+  }
+}
