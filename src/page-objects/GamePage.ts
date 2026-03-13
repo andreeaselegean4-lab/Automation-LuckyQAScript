@@ -23,6 +23,7 @@
 
 import { type Locator, type Page, expect } from '@playwright/test';
 import { type SpinRecord, SpinInterceptor } from '../utils/spinInterceptor';
+import { loadSelectors, type GameSelectors } from '../config/selectors';
 
 // ── BalanceTracker ────────────────────────────────────────────────────────────
 
@@ -108,6 +109,7 @@ export class GamePage {
   readonly interceptor: SpinInterceptor;
   readonly balance:     BalanceTracker;
   readonly debug:       DebugTrigger;
+  private readonly _sel: GameSelectors;
 
   // ── Locators ────────────────────────────────────────────────────────────
 
@@ -153,23 +155,24 @@ export class GamePage {
     this.interceptor = new SpinInterceptor(page);
     this.balance     = new BalanceTracker(this);
     this.debug       = new DebugTrigger(page);
+    this._sel        = loadSelectors();
 
     // Visible buttons — for click() and toBeVisible()
-    this.spinButton     = page.locator('#spinButton').last();
-    this.autoplayButton = page.locator('#autoplayButton').last();
-    this.menuButton     = page.locator('#menuButton').last();
-    this.turboButton    = page.locator('.fastplay-button').last();
-    this.betIncrease    = page.locator('.bet-button--increase').last();
-    this.betDecrease    = page.locator('.bet-button--decrease').last();
-    this.betValue       = page.locator('.bet-value').last();
-    this.balanceDisplay = page.locator('.balance-value');
-    this.lastWinDisplay = page.locator('.win-value');
-    this.loadingScreen  = page.locator('.loading-screen');
+    this.spinButton     = page.locator(this._sel.spinButton).last();
+    this.autoplayButton = page.locator(this._sel.autoplayButton).last();
+    this.menuButton     = page.locator(this._sel.menuButton).last();
+    this.turboButton    = page.locator(this._sel.turboButton).last();
+    this.betIncrease    = page.locator(this._sel.betIncrease).last();
+    this.betDecrease    = page.locator(this._sel.betDecrease).last();
+    this.betValue       = page.locator(this._sel.betValue).last();
+    this.balanceDisplay = page.locator(this._sel.balanceDisplay);
+    this.lastWinDisplay = page.locator(this._sel.lastWinDisplay);
+    this.loadingScreen  = page.locator(this._sel.loadingScreen);
 
     // Hidden state-tracking elements — for enabled/disabled/stop class checks
-    this._spinState   = page.locator('#spinButton').first();
-    this._betIncState = page.locator('.bet-button--increase').first();
-    this._betDecState = page.locator('.bet-button--decrease').first();
+    this._spinState   = page.locator(this._sel.spinButton).first();
+    this._betIncState = page.locator(this._sel.betIncrease).first();
+    this._betDecState = page.locator(this._sel.betDecrease).first();
   }
 
   // ── Static helpers ───────────────────────────────────────────────────────
@@ -206,7 +209,7 @@ export class GamePage {
     await this.page.goto(url, { waitUntil: 'domcontentloaded' });
     // Wait for the intro overlay (.loading-screen.ready) — added when assets finish loading.
     // If it never appears (rare: already dismissed or different build), proceed anyway.
-    await this.page.waitForSelector('.loading-screen.ready', { timeout: 90_000 }).catch(() => {});
+    await this.page.waitForSelector(this._sel.loadingScreenReady, { timeout: 90_000 }).catch(() => {});
     await this.page.waitForTimeout(1_800);
 
     // Dismiss intro animation — click near bottom-center of viewport
@@ -455,16 +458,13 @@ export class GamePage {
    * Throws if not idle within the timeout.
    */
   async waitForIdle(timeout = 20_000): Promise<void> {
-    // _spinState (.first()) carries enabled/disabled classes and is updated by the game's
-    // state machine regardless of which button was clicked. Safe for load-time + post-spin checks.
-    await expect(this._spinState).toHaveClass(/enabled/, { timeout });
-    await expect(this._spinState).not.toHaveClass(/(?<!\w)disabled(?!\w)/, { timeout: 3_000 }).catch(() => {});
+    await expect(this._spinState).toHaveClass(new RegExp(this._sel.classSpinEnabled), { timeout });
+    await expect(this._spinState).not.toHaveClass(new RegExp(`(?<!\\w)${this._sel.classSpinDisabled}(?!\\w)`), { timeout: 3_000 }).catch(() => {});
   }
 
   /** Wait until the spin button enters the spinning / stop state */
   async waitForSpinning(timeout = 8_000): Promise<void> {
-    // During a spin the visible button switches to image-stop-spin-button (shows STOP icon)
-    await expect(this.spinButton).toHaveClass(/image-stop-spin-button/, { timeout });
+    await expect(this.spinButton).toHaveClass(new RegExp(this._sel.classSpinStop), { timeout });
   }
 
   /**
@@ -477,7 +477,7 @@ export class GamePage {
       // Try to dismiss bonus/error overlays blocking the button
       await this._dismissOverlayIfPresent();
       const cls = (await this.spinButton.getAttribute('class').catch(() => '')) ?? '';
-      return !cls.includes('image-stop-spin-button');
+      return !cls.includes(this._sel.classSpinStop);
     }, { timeout, intervals: [300, 500, 1000] }).toBe(true);
   }
 
@@ -485,13 +485,12 @@ export class GamePage {
 
   async isSpinButtonEnabled(): Promise<boolean> {
     const cls = (await this.spinButton.getAttribute('class')) ?? '';
-    return !cls.includes('image-stop-spin-button') && !cls.includes('disabled');
+    return !cls.includes(this._sel.classSpinStop) && !cls.includes(this._sel.classSpinDisabled);
   }
 
   async isSpinButtonDisabled(): Promise<boolean> {
     const cls = (await this.spinButton.getAttribute('class')) ?? '';
-    // image-stop-spin-button = spin in progress (stop button showing); disabled = hard lock
-    return cls.includes('image-stop-spin-button') || cls.includes('disabled');
+    return cls.includes(this._sel.classSpinStop) || cls.includes(this._sel.classSpinDisabled);
   }
 
   /**
@@ -504,7 +503,7 @@ export class GamePage {
       this._betIncState.getAttribute('class'),
       this._betDecState.getAttribute('class'),
     ]);
-    return checks.every(cls => (cls ?? '').includes('disabled'));
+    return checks.every(cls => (cls ?? '').includes(this._sel.classControlDisabled));
   }
 
   /**
@@ -513,8 +512,8 @@ export class GamePage {
    */
   async areControlsEnabled(): Promise<boolean> {
     try {
-      await expect(this._betIncState).toHaveClass(/enabled/, { timeout: 10_000 });
-      await expect(this._betDecState).toHaveClass(/enabled/, { timeout: 10_000 });
+      await expect(this._betIncState).toHaveClass(new RegExp(this._sel.classControlEnabled), { timeout: 10_000 });
+      await expect(this._betDecState).toHaveClass(new RegExp(this._sel.classControlEnabled), { timeout: 10_000 });
       return true;
     } catch {
       return false;
@@ -595,7 +594,7 @@ export class GamePage {
   async increaseBet(times = 1): Promise<void> {
     for (let i = 0; i < times; i++) {
       const cls = (await this._betIncState.getAttribute('class')) ?? '';
-      if (cls.includes('disabled')) return;
+      if (cls.includes(this._sel.classControlDisabled)) return;
       // force: true bypasses the parent wrapper that intercepts pointer events
       await this.betIncrease.click({ force: true });
       await this.page.waitForTimeout(200);
@@ -606,7 +605,7 @@ export class GamePage {
   async decreaseBet(times = 1): Promise<void> {
     for (let i = 0; i < times; i++) {
       const cls = (await this._betDecState.getAttribute('class')) ?? '';
-      if (cls.includes('disabled')) return;
+      if (cls.includes(this._sel.classControlDisabled)) return;
       // force: true bypasses the parent wrapper that intercepts pointer events
       await this.betDecrease.click({ force: true });
       await this.page.waitForTimeout(200);
@@ -623,17 +622,17 @@ export class GamePage {
   async enableTurbo(): Promise<void> {
     for (let i = 0; i < 3; i++) {
       const cls = (await this.turboButton.getAttribute('class')) ?? '';
-      if (cls.includes('play-button--fast')) return;
+      if (cls.includes(this._sel.classTurboActive)) return;
       await this.turboButton.click();
       await this.page.waitForTimeout(150);
     }
   }
 
-  /** Disable turbo mode. Clicks until 'play-button--regular' class is present. */
+  /** Disable turbo mode. Clicks until the regular (non-turbo) class is present. */
   async disableTurbo(): Promise<void> {
     for (let i = 0; i < 3; i++) {
       const cls = (await this.turboButton.getAttribute('class')) ?? '';
-      if (cls.includes('play-button--regular')) return;
+      if (cls.includes(this._sel.classTurboRegular)) return;
       await this.turboButton.click();
       await this.page.waitForTimeout(150);
     }
@@ -648,7 +647,7 @@ export class GamePage {
   async startAutoplay(): Promise<void> {
     await this.autoplayButton.click();
     // During autoplay the spin button is disabled (cannot be clicked)
-    await expect(this._spinState).toHaveClass(/disabled/, { timeout: 10_000 });
+    await expect(this._spinState).toHaveClass(new RegExp(this._sel.classSpinDisabled), { timeout: 10_000 });
   }
 
   /**

@@ -13,10 +13,12 @@
 
 import * as dotenv from 'dotenv';
 
-dotenv.config();
+const envFile = process.env['ENV'] ? `.env.${process.env['ENV']}` : '.env';
+dotenv.config({ path: envFile });
 
 const LAUNCHER_BASE = 'https://launcher.avocadospins.com';
-const GAME_PARAMS   = '&mode=demo&locale=en&et=tr';  // et=tr for Sands of Fortune
+const GAME_BRAND_ID = process.env['GAME_BRAND_ID'] ?? 'tr';
+const GAME_PARAMS   = `&mode=demo&locale=en&et=${GAME_BRAND_ID}`;
 
 async function fetchJson<T>(url: string, opts: RequestInit): Promise<T> {
   const res = await fetch(url, opts);
@@ -61,11 +63,11 @@ export default async function globalSetup(): Promise<void> {
           Accept:         'application/json, *.*',
         },
         body: JSON.stringify({
-          gameId:     'sands-of-fortune',   // ← Sands of Fortune game ID
+          gameId:     process.env['GAME_ID'] ?? 'sands-of-fortune',
           mode:       'demo',
           currency:   'EUR',
           locale:     'en',
-          brandId:    'tr',                  // ← et=tr engine
+          brandId:    GAME_BRAND_ID,
           playerId:   'player1',
           platform:   'web',
           lobbyUrl:   `${LAUNCHER_BASE}/`,

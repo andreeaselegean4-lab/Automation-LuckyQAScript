@@ -1,7 +1,11 @@
 import { defineConfig, devices } from '@playwright/test';
 import * as dotenv from 'dotenv';
 
-dotenv.config();
+// Load environment-specific .env file.
+// Usage: ENV=toucan npx playwright test
+// Falls back to .env if ENV is not set.
+const envFile = process.env['ENV'] ? `.env.${process.env['ENV']}` : '.env';
+dotenv.config({ path: envFile });
 
 export default defineConfig({
   testDir:     './tests',
