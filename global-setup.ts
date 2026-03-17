@@ -13,7 +13,7 @@
 
 import * as dotenv from 'dotenv';
 
-const envFile = process.env['ENV'] ? `.env.${process.env['ENV']}` : '.env';
+const envFile = process.env['ENV'] ? `.env.${process.env['ENV']}` : '.env.NovomaticGames';
 dotenv.config({ path: envFile });
 
 const LAUNCHER_BASE = 'https://launcher.avocadospins.com';
@@ -77,6 +77,11 @@ export default async function globalSetup(): Promise<void> {
         }),
       },
     );
+
+    if (!gameUrl) {
+      console.warn('[global-setup] API returned a null/empty game URL — keeping existing GAME_URL from .env.');
+      return;
+    }
 
     process.env['GAME_URL']       = gameUrl;
     process.env['GAME_URL_DEBUG'] = `${gameUrl}&debug=true`;
