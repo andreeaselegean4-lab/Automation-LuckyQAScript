@@ -8,7 +8,7 @@ export const NOVOMATIC_GAMES_SELECTORS: GameSelectors = {
   spinButton:         '#spinButton',
   // NovomaticGames uses capital-P: id="autoPlayButton"
   autoplayButton:     '#autoPlayButton',
-  menuButton:         '#menuButton',
+  menuButton:         '.menu-button',
   // Turbo button cycles through play-button--regular/medium/fast; match all states
   turboButton:        '[class*="play-button--"]',
   betIncrease:        '.bet-button--increase',
