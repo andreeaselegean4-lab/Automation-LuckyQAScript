@@ -56,9 +56,9 @@ export default defineConfig({
         launchOptions: {
           args: [
             '--disable-web-security',
-            '--use-angle=metal',
             '--ignore-gpu-blocklist',
             '--enable-webgl',
+            '--disable-gpu-sandbox',
             '--disable-background-timer-throttling',
             '--disable-renderer-backgrounding',
             '--disable-backgrounding-occluded-windows',
