@@ -27,11 +27,11 @@ async function fetchJson<T>(url: string, opts: RequestInit): Promise<T> {
 }
 
 export default async function globalSetup(): Promise<void> {
-  const username = process.env['USERNAME'];
-  const password = process.env['PASSWORD'];
+  const username = process.env['LAUNCHER_USERNAME'];
+  const password = process.env['LAUNCHER_PASSWORD'];
 
   if (!username || !password) {
-    console.log('[global-setup] No USERNAME/PASSWORD in .env — using existing GAME_URL as-is.');
+    console.log('[global-setup] No LAUNCHER_USERNAME/LAUNCHER_PASSWORD in .env — using existing GAME_URL as-is.');
     return;
   }
 
@@ -78,8 +78,8 @@ export default async function globalSetup(): Promise<void> {
       },
     );
 
-    process.env['GAME_URL']       = gameUrl + GAME_PARAMS.replace('?', '&');
-    process.env['GAME_URL_DEBUG'] = `${gameUrl}${GAME_PARAMS.replace('?', '&')}&debug=true`;
+    process.env['GAME_URL']       = gameUrl;
+    process.env['GAME_URL_DEBUG'] = `${gameUrl}&debug=true`;
 
     // Log iat for diagnostics
     try {
