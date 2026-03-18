@@ -1,20 +1,19 @@
 /**
  * game.constants.ts
  *
- * All game-specific constants for Sands of Fortune: Hold & Win
- * Engine: et=tr  |  API: POST /demoplay  |  Grid: 5 reels × 3 rows
+ * All game-specific constants for Bonsai Gold 2: Age of Prosperity
+ * Engine: et=ng  |  API: POST /demoplay  |  Grid: 5 reels × 3 rows
  *
  * Sources:
- *   - src/components/ResponseAdapter.js  (symbol IDs, game modes)
- *   - src/stub.js                        (debug trigger names)
- *   - Live DOM inspection                (CSS selectors, UI elements)
+ *   - Live API inspection (network capture of real /demoplay responses)
+ *   - Live DOM inspection (CSS selectors, UI elements)
  */
 
 // ── Game Identity ─────────────────────────────────────────────────────────────
 
-export const GAME_ID       = 'sands-of-fortune';
-export const GAME_BRAND_ID = 'tr';
-export const GAME_NAME     = 'Sands Of Fortune Hold&Win';
+export const GAME_ID       = 'bonsai-gold-2';
+export const GAME_BRAND_ID = 'brand1';
+export const GAME_NAME     = 'Bonsai Gold 2: Age of Prosperity';
 
 // ── API ───────────────────────────────────────────────────────────────────────
 
