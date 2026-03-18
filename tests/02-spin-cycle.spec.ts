@@ -168,8 +168,10 @@ test.describe('Spin Cycle — State Machine & Balance Integrity', () => {
 
         const countBefore = gamePage.interceptor.history.length;
 
-        // Rapid double-click — the second click should be a no-op while spinning
+        // Click once, wait until spinning starts, then click again — the second
+        // click should be a no-op (or stop-animation) while spin-stop-button is active
         await gamePage.spinButton.click();
+        await gamePage.waitForSpinning();
         await gamePage.spinButton.click();
         await gamePage.waitForSpinComplete();
 
