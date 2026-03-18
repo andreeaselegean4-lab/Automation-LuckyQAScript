@@ -19,42 +19,49 @@ test.describe('Win Payout Verification', () => {
 
   /**
    * Helper: run spins until a winning spin is captured or maxAttempts reached.
+   * Returns the spin record AND the balance captured BEFORE that spin so the
+   * caller can compute a stable delta using getBalanceStable().
    */
-  async function findWinningSpin(gamePage: { spinAndWait: () => Promise<void>; interceptor: { getLastSpin: () => any } }, maxAttempts = 30) {
+  async function findWinningSpin(gamePage: { spinAndWait: () => Promise<void>; getTopBarBalance: () => Promise<number>; interceptor: { getLastSpin: () => any } }, maxAttempts = 30) {
     for (let i = 0; i < maxAttempts; i++) {
+      const balanceBefore = await gamePage.getTopBarBalance();
       await gamePage.spinAndWait();
       const spin = gamePage.interceptor.getLastSpin();
-      if (spin && (spin.response.payload.wins?.length ?? 0) > 0) return spin;
+      if (spin && (spin.response.payload.wins?.length ?? 0) > 0) return { spin, balanceBefore };
     }
     return null;
   }
 
   test('balance delta equals win amount minus bet on a winning spin', async ({ gamePage }) => {
-    const spin = await findWinningSpin(gamePage);
-    if (!spin) {
+    const result = await findWinningSpin(gamePage);
+    if (!result) {
       test.skip(true, 'No winning spin in 30 attempts');
       return;
     }
+    const { spin, balanceBefore } = result;
     const wins    = spin.response.payload.wins ?? [];
     const betCfg  = spin.response.payload.bet;
     // wins[].amount is in coin units — multiply by bet.value to convert to EUR
     const winSum  = wins.reduce((s: number, w: { amount: number }) => s + w.amount, 0) * betCfg.value;
-    const records = gamePage.balance.history;
-    const last    = records[records.length - 1];
-    expect(Math.abs(last.delta - (winSum - (betCfg.amount * betCfg.value)))).toBeLessThanOrEqual(0.05);
+    // Use getBalanceStable() so the animation settles before we read the final value
+    const balanceAfter = await gamePage.getBalanceStable();
+    const actualDelta  = balanceAfter - balanceBefore;
+    expect(Math.abs(actualDelta - (winSum - (betCfg.amount * betCfg.value)))).toBeLessThanOrEqual(0.05);
   });
 
   test('Last Win display matches the wins[] sum', async ({ gamePage }) => {
-    const spin = await findWinningSpin(gamePage);
-    if (!spin) {
+    const result = await findWinningSpin(gamePage);
+    if (!result) {
       test.skip(true, 'No winning spin in 30 attempts');
       return;
     }
+    const { spin } = result;
     const wins    = spin.response.payload.wins ?? [];
     const betCfg  = spin.response.payload.bet;
     // wins[].amount is in coin units — multiply by bet.value to convert to EUR
     const winSum  = wins.reduce((s: number, w: { amount: number }) => s + w.amount, 0) * betCfg.value;
-    const display = await gamePage.getLastWin();
+    // Use stable read so animation settles before comparing
+    const display = await gamePage.getLastWinStable();
     expect(Math.abs(display - winSum)).toBeLessThanOrEqual(0.05);
   });
 
@@ -79,11 +86,14 @@ test.describe('Win Payout Verification', () => {
   test('multi-win spin: sum of individual wins matches total balance delta', async ({ gamePage }) => {
     // Find a spin with 2+ wins (harder to guarantee — run more attempts)
     let multiWinSpin = null;
+    let balanceBeforeMultiWin = 0;
     for (let i = 0; i < 50; i++) {
+      const bal = await gamePage.getTopBarBalance();
       await gamePage.spinAndWait();
       const spin = gamePage.interceptor.getLastSpin();
       if (spin && (spin.response.payload.wins?.length ?? 0) >= 2) {
         multiWinSpin = spin;
+        balanceBeforeMultiWin = bal;
         break;
       }
     }
@@ -95,8 +105,9 @@ test.describe('Win Payout Verification', () => {
     const betCfg = multiWinSpin.response.payload.bet;
     // wins[].amount is in coin units — multiply by bet.value to convert to EUR
     const winSum = wins.reduce((s: number, w: { amount: number }) => s + w.amount, 0) * betCfg.value;
-    const record = gamePage.balance.history[gamePage.balance.history.length - 1];
-    expect(Math.abs(record.delta - (winSum - betCfg.amount * betCfg.value))).toBeLessThanOrEqual(0.10);
+    const balanceAfter = await gamePage.getBalanceStable();
+    const actualDelta  = balanceAfter - balanceBeforeMultiWin;
+    expect(Math.abs(actualDelta - (winSum - betCfg.amount * betCfg.value))).toBeLessThanOrEqual(0.10);
   });
 
   test('jackpot win amount is a positive multiple of the bet', async ({ gamePage, gameDebugUrl }) => {
