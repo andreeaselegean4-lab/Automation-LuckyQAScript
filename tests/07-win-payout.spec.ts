@@ -27,7 +27,13 @@ test.describe('Win Payout Verification', () => {
       const balanceBefore = await gamePage.getTopBarBalance();
       await gamePage.spinAndWait();
       const spin = gamePage.interceptor.getLastSpin();
-      if (spin && (spin.response.payload.wins?.length ?? 0) > 0) return { spin, balanceBefore };
+      if (spin) {
+        const wins = spin.response.payload.wins ?? [];
+        // Only count spins with actual monetary wins — exclude free-spin triggers
+        // where wins[].amount is 0 (e.g. { amount: 0, freegames: 10 })
+        const totalAmount = wins.reduce((s: number, w: { amount: number }) => s + w.amount, 0);
+        if (totalAmount > 0) return { spin, balanceBefore };
+      }
     }
     return null;
   }
