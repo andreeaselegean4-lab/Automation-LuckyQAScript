@@ -36,10 +36,11 @@ test.describe('Win Payout Verification', () => {
       return;
     }
     const wins    = spin.response.payload.wins ?? [];
-    const winSum  = wins.reduce((s: number, w: { amount: number }) => s + w.amount, 0);
+    const betCfg  = spin.response.payload.bet;
+    // wins[].amount is in coin units — multiply by bet.value to convert to EUR
+    const winSum  = wins.reduce((s: number, w: { amount: number }) => s + w.amount, 0) * betCfg.value;
     const records = gamePage.balance.history;
     const last    = records[records.length - 1];
-    const betCfg  = spin.response.payload.bet;
     expect(Math.abs(last.delta - (winSum - (betCfg.amount * betCfg.value)))).toBeLessThanOrEqual(0.05);
   });
 
@@ -50,7 +51,9 @@ test.describe('Win Payout Verification', () => {
       return;
     }
     const wins    = spin.response.payload.wins ?? [];
-    const winSum  = wins.reduce((s: number, w: { amount: number }) => s + w.amount, 0);
+    const betCfg  = spin.response.payload.bet;
+    // wins[].amount is in coin units — multiply by bet.value to convert to EUR
+    const winSum  = wins.reduce((s: number, w: { amount: number }) => s + w.amount, 0) * betCfg.value;
     const display = await gamePage.getLastWin();
     expect(Math.abs(display - winSum)).toBeLessThanOrEqual(0.05);
   });
@@ -89,9 +92,10 @@ test.describe('Win Payout Verification', () => {
       return;
     }
     const wins   = multiWinSpin.response.payload.wins ?? [];
-    const winSum = wins.reduce((s: number, w: { amount: number }) => s + w.amount, 0);
-    const record = gamePage.balance.history[gamePage.balance.history.length - 1];
     const betCfg = multiWinSpin.response.payload.bet;
+    // wins[].amount is in coin units — multiply by bet.value to convert to EUR
+    const winSum = wins.reduce((s: number, w: { amount: number }) => s + w.amount, 0) * betCfg.value;
+    const record = gamePage.balance.history[gamePage.balance.history.length - 1];
     expect(Math.abs(record.delta - (winSum - betCfg.amount * betCfg.value))).toBeLessThanOrEqual(0.10);
   });
 

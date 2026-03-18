@@ -228,10 +228,11 @@ export class SpinInterceptor {
     }, 0);
   }
 
-  /** Sum of all wins from history[fromIndex] onwards */
+  /** Sum of all wins from history[fromIndex] onwards, in EUR (currency units) */
   getTotalWon(fromIndex = 0): number {
     return this.history.slice(fromIndex).reduce((sum, s) => {
-      return sum + (s.response.payload.wins ?? []).reduce((ws, w) => ws + w.amount, 0);
+      const coinValue = s.response.payload.bet.value;
+      return sum + (s.response.payload.wins ?? []).reduce((ws, w) => ws + w.amount, 0) * coinValue;
     }, 0);
   }
 

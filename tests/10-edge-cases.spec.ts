@@ -52,7 +52,9 @@ test.describe('Edge Cases — Mock Responses [mock]', () => {
 
     const spin       = gamePage.interceptor.getLastSpin()!;
     const wins       = spin.response.payload.wins ?? [];
-    const totalWin   = wins.reduce((s: number, w: { amount: number }) => s + w.amount, 0);
+    // wins[].amount is in coin units — multiply by bet.value to convert to EUR
+    const coinValue  = spin.response.payload.bet.value;
+    const totalWin   = wins.reduce((s: number, w: { amount: number }) => s + w.amount, 0) * coinValue;
     const after      = await gamePage.getBalance();
 
     expect(totalWin).toBeGreaterThan(0);
@@ -79,7 +81,9 @@ test.describe('Edge Cases — Mock Responses [mock]', () => {
 
     await gamePage.spinAndWait();
     const displayed = await gamePage.getLastWin();
-    expect(Math.abs(displayed - winAmt)).toBeLessThanOrEqual(0.05);
+    // winAmt is in coin units (passed to buildWin) — multiply by coinValue for EUR comparison
+    const coinValue = mock.bet.value;
+    expect(Math.abs(displayed - winAmt * coinValue)).toBeLessThanOrEqual(0.05);
   });
 
   test('Hold & Win bonus trigger mock: game handles bonus flag without crashing', async ({ gamePage, consoleErrors }) => {
