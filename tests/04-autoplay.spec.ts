@@ -176,10 +176,12 @@ test.describe('Autoplay', () => {
             const { win } = spin.response.payload;
             // Use the real bet from the request (amount × value = totalBet),
             // not the mock response bet whose .value equals totalBet causing
-            // double-scaling. win is already in currency units — no multiplication.
+            // double-scaling. win is in coin units — multiply by bet.value to
+            // convert to EUR (same unit as the balance display).
             const b = spin.request.bet;
+            const coinValue = spin.response.payload.bet.value;
             expectedBalance -= b.amount * b.value;
-            expectedBalance += (win ?? 0);
+            expectedBalance += (win ?? 0) * coinValue;
         }
 
         expect(Math.abs(balanceAfter - expectedBalance)).toBeLessThanOrEqual(0.10);
