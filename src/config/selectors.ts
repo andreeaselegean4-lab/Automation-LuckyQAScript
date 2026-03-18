@@ -49,6 +49,6 @@ const SELECTOR_MAP: Record<string, GameSelectors> = {
 };
 
 export function loadSelectors(): GameSelectors {
-  const env = process.env['ENV'] ?? 'ToucanRoyale';
-  return SELECTOR_MAP[env] ?? TOUCAN_ROYALE_SELECTORS;
+  const env = process.env['ENV'] ?? 'NovomaticGames';
+  return SELECTOR_MAP[env] ?? NOVOMATIC_GAMES_SELECTORS;
 }

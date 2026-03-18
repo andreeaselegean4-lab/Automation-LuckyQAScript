@@ -4,7 +4,7 @@ import * as dotenv from 'dotenv';
 // Load environment-specific .env file.
 // Usage: ENV=toucan npx playwright test
 // Falls back to .env if ENV is not set.
-const envFile = process.env['ENV'] ? `.env.${process.env['ENV']}` : '.env';
+const envFile = process.env['ENV'] ? `.env.${process.env['ENV']}` : '.env.NovomaticGames';
 dotenv.config({ path: envFile });
 
 export default defineConfig({
@@ -36,7 +36,7 @@ export default defineConfig({
   use: {
     baseURL: process.env['BASE_URL'] || 'https://gs.avocadospins.com',
 
-    headless: true,
+    headless: false,
 
     // Fixed viewport for deterministic coordinate-based fallbacks
     viewport: { width: 1280, height: 720 },
@@ -55,9 +55,10 @@ export default defineConfig({
         // SwiftShader WebGL so the PixiJS canvas renders correctly in headless mode
         launchOptions: {
           args: [
-            '--use-angle=swiftshader',
+            '--disable-web-security',
             '--ignore-gpu-blocklist',
             '--enable-webgl',
+            '--disable-gpu-sandbox',
             '--disable-background-timer-throttling',
             '--disable-renderer-backgrounding',
             '--disable-backgrounding-occluded-windows',

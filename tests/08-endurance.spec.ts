@@ -121,7 +121,8 @@ test.describe('Endurance', () => {
     for (const s of spins) {
       const b = s.response.payload.bet;
       expected -= b.amount * b.value;
-      expected += (s.response.payload.wins ?? []).reduce((sum: number, w: { amount: number }) => sum + w.amount, 0);
+      // wins[].amount is in coin units — multiply by bet.value to convert to EUR
+      expected += (s.response.payload.wins ?? []).reduce((sum: number, w: { amount: number }) => sum + w.amount, 0) * b.value;
     }
 
     const drift = Math.abs(endBalance - expected);

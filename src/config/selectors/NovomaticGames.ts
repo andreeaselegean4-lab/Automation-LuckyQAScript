@@ -8,7 +8,7 @@ export const NOVOMATIC_GAMES_SELECTORS: GameSelectors = {
   spinButton:         '#spinButton',
   // NovomaticGames uses capital-P: id="autoPlayButton"
   autoplayButton:     '#autoPlayButton',
-  menuButton:         '#menuButton',
+  menuButton:         '.hamburger-button',
   // Turbo button cycles through play-button--regular/medium/fast; match all states
   turboButton:        '[class*="play-button--"]',
   betIncrease:        '.bet-button--increase',
@@ -21,9 +21,9 @@ export const NOVOMATIC_GAMES_SELECTORS: GameSelectors = {
   loadingScreenReady: '.loading-screen.ready',
 
   // Class fragments
-  // NovomaticGames has no separate "stop" icon — the spin button just gets
-  // 'disabled' while a spin is in progress, so classSpinStop === classSpinDisabled
-  classSpinStop:        'disabled',
+  // NovomaticGames spin button gets 'spin-stop-button' while a spin is in progress
+  // (the button stays 'enabled' — it acts as a stop button, not a disabled one)
+  classSpinStop:        'spin-stop-button',
   classSpinEnabled:     'enabled',
   classSpinDisabled:    'disabled',
   classTurboActive:     'play-button--fast',

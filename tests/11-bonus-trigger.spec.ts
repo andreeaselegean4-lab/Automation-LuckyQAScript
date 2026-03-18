@@ -125,7 +125,8 @@ test.describe('Hold & Win Bonus Lifecycle [debug]', () => {
     const balanceAfter = await gamePage.getBalance();
     const bonusSpins   = gamePage.interceptor.history.slice(startIdx);
     const totalWon     = bonusSpins.reduce(
-      (sum, s) => sum + (s.response.payload.wins ?? []).reduce((ws: number, w: { amount: number }) => ws + w.amount, 0),
+      // wins[].amount is in coin units — multiply by bet.value to convert to EUR
+      (sum, s) => sum + (s.response.payload.wins ?? []).reduce((ws: number, w: { amount: number }) => ws + w.amount, 0) * s.response.payload.bet.value,
       0,
     );
     const totalBet     = bonusSpins.reduce((sum, s) => {

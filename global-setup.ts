@@ -13,7 +13,7 @@
 
 import * as dotenv from 'dotenv';
 
-const envFile = process.env['ENV'] ? `.env.${process.env['ENV']}` : '.env';
+const envFile = process.env['ENV'] ? `.env.${process.env['ENV']}` : '.env.NovomaticGames';
 dotenv.config({ path: envFile });
 
 const LAUNCHER_BASE = 'https://launcher.avocadospins.com';
@@ -27,11 +27,11 @@ async function fetchJson<T>(url: string, opts: RequestInit): Promise<T> {
 }
 
 export default async function globalSetup(): Promise<void> {
-  const username = process.env['USERNAME'];
-  const password = process.env['PASSWORD'];
+  const username = process.env['LAUNCHER_USERNAME'];
+  const password = process.env['LAUNCHER_PASSWORD'];
 
   if (!username || !password) {
-    console.log('[global-setup] No USERNAME/PASSWORD in .env — using existing GAME_URL as-is.');
+    console.log('[global-setup] No LAUNCHER_USERNAME/LAUNCHER_PASSWORD in .env — using existing GAME_URL as-is.');
     return;
   }
 
@@ -78,8 +78,13 @@ export default async function globalSetup(): Promise<void> {
       },
     );
 
-    process.env['GAME_URL']       = gameUrl + GAME_PARAMS.replace('?', '&');
-    process.env['GAME_URL_DEBUG'] = `${gameUrl}${GAME_PARAMS.replace('?', '&')}&debug=true`;
+    if (!gameUrl) {
+      console.warn('[global-setup] API returned a null/empty game URL — keeping existing GAME_URL from .env.');
+      return;
+    }
+
+    process.env['GAME_URL']       = gameUrl;
+    process.env['GAME_URL_DEBUG'] = `${gameUrl}&debug=true`;
 
     // Log iat for diagnostics
     try {

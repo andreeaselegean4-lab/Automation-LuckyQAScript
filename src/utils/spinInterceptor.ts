@@ -8,17 +8,21 @@
  *   - Allow individual or queued mock responses (no live network needed)
  *   - Expose static factory methods for building deterministic payloads
  *
- * Payload format (Sands of Fortune: Hold & Win):
- *   display: number[][]   5 reels × 3 rows  (display[reel][row])
- *   bet:     { amount: number; value: number }  totalBet = amount × value
- *   win:     number        total win this round
- *   wins:    WinObject[]   individual payline / feature wins
- *   coingames?: number     Hold & Win respin counter (0 = inactive)
- *   remaining?: number     free spins remaining
- *   start, end: boolean    round phase flags
- *   collection?: number    coin count accumulated
- *   trigger?: boolean      true when Hold & Win triggers on this spin
- *   seed?: number          RNG seed (for reproduction)
+ * Payload format (Bonsai Gold 2 — verified against live API):
+ *   display:      number[][]   5 reels × 3 rows  (display[reel][row])
+ *   coins:        number[][]   5 reels × 3 rows  coin values per cell (0 = no coin)
+ *   initial:      null | number[][]   previous display (null for base game)
+ *   coinsInitial: null | number[][]   previous coins state (null for base game)
+ *   bet:          { amount: number; value: number }  totalBet = amount × value (amount=20)
+ *   win:          number        total win this round
+ *   wins:         WinObject[]   individual payline / feature wins
+ *   collection:   number        coin count accumulated this round
+ *   scenarioId:   number        RNG scenario identifier
+ *   RoundMetadata: { betType: string }
+ *   coingames?:   number        Hold & Win respin counter (0 = inactive)
+ *   remaining?:   number        free spins remaining
+ *   start, end:   boolean       round phase flags
+ *   trigger?:     boolean       true when Hold & Win triggers on this spin
  */
 
 import { type Page, type Route } from '@playwright/test';
@@ -35,18 +39,21 @@ export interface WinObject {
 }
 
 export interface SpinPayload {
-  display:     number[][];
-  bet:         { amount: number; value: number };
-  win:         number;
-  wins:        WinObject[];
-  coingames?:  number;
-  remaining?:  number;
-  start?:      boolean;
-  end?:        boolean;
-  collection?: number;
-  trigger?:    boolean;
-  seed?:       number;
-  initial?:    unknown;
+  display:       number[][];
+  coins:         number[][];
+  initial:       number[][] | null;
+  coinsInitial:  number[][] | null;
+  bet:           { amount: number; value: number };
+  win:           number;
+  wins:          WinObject[];
+  collection:    number;
+  scenarioId:    number;
+  RoundMetadata: { betType: string };
+  coingames?:    number;
+  remaining?:    number;
+  start?:        boolean;
+  end?:          boolean;
+  trigger?:      boolean;
 }
 
 export interface SpinRequest {
@@ -66,10 +73,10 @@ export interface SpinRecord {
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-const DEFAULT_BET_AMOUNT = 10;
+const DEFAULT_BET_AMOUNT = 20;
 const DEMOPLAY_GLOB      = `**${SPIN_API_PATH}`;
 
-/** A 5×3 grid of non-winning symbols (all low-value, no paylines) */
+/** A 5×3 grid of non-winning symbols (all low-value, no paylines, no coins) */
 function neutralDisplay(): number[][] {
   return [
     [1, 2, 3],
@@ -78,6 +85,11 @@ function neutralDisplay(): number[][] {
     [2, 3, 4],
     [5, 6, 7],
   ];
+}
+
+/** A 5×3 grid of zeros — no coin symbols present */
+function emptyCoins(): number[][] {
+  return [[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0]];
 }
 
 /** Build a bet config from a total bet amount */
@@ -216,10 +228,11 @@ export class SpinInterceptor {
     }, 0);
   }
 
-  /** Sum of all wins from history[fromIndex] onwards */
+  /** Sum of all wins from history[fromIndex] onwards, in EUR (currency units) */
   getTotalWon(fromIndex = 0): number {
     return this.history.slice(fromIndex).reduce((sum, s) => {
-      return sum + (s.response.payload.wins ?? []).reduce((ws, w) => ws + w.amount, 0);
+      const coinValue = s.response.payload.bet.value;
+      return sum + (s.response.payload.wins ?? []).reduce((ws, w) => ws + w.amount, 0) * coinValue;
     }, 0);
   }
 
@@ -228,17 +241,21 @@ export class SpinInterceptor {
   /** Build a no-win response payload */
   static buildNoWin(totalBet: number): SpinPayload {
     return {
-      display:    neutralDisplay(),
-      bet:        betConfig(totalBet),
-      win:        0,
-      wins:       [],
-      coingames:  0,
-      remaining:  0,
-      start:      true,
-      end:        true,
-      collection: 0,
-      trigger:    false,
-      seed:       12345,
+      display:       neutralDisplay(),
+      coins:         emptyCoins(),
+      initial:       null,
+      coinsInitial:  null,
+      bet:           betConfig(totalBet),
+      win:           0,
+      wins:          [],
+      collection:    0,
+      scenarioId:    12345,
+      RoundMetadata: { betType: '' },
+      coingames:     0,
+      remaining:     0,
+      start:         true,
+      end:           true,
+      trigger:       false,
     };
   }
 
@@ -268,16 +285,20 @@ export class SpinInterceptor {
 
     return {
       display,
-      bet:        betConfig(totalBet),
-      win:        totalWin,
+      coins:         emptyCoins(),
+      initial:       null,
+      coinsInitial:  null,
+      bet:           betConfig(totalBet),
+      win:           totalWin,
       wins,
-      coingames:  0,
-      remaining:  0,
-      start:      true,
-      end:        true,
-      collection: 0,
-      trigger:    false,
-      seed:       23456,
+      collection:    0,
+      scenarioId:    23456,
+      RoundMetadata: { betType: '' },
+      coingames:     0,
+      remaining:     0,
+      start:         true,
+      end:           true,
+      trigger:       false,
     };
   }
 
@@ -286,24 +307,31 @@ export class SpinInterceptor {
    * Puts 6 COIN (10) symbols on the grid and sets coingames = 3.
    */
   static buildBonusTrigger(totalBet: number): SpinPayload {
+    const display = [
+      [COLLECTOR_COIN, COLLECTOR_COIN, 1],
+      [COLLECTOR_COIN, COLLECTOR_COIN, 2],
+      [COLLECTOR_COIN, COLLECTOR_COIN, 3],
+      [1, 2, 3],
+      [4, 5, 6],
+    ];
+    // coins mirrors display for COIN positions
+    const coins = display.map(reel => reel.map(sym => sym === COLLECTOR_COIN ? COLLECTOR_COIN : 0));
     return {
-      display: [
-        [COLLECTOR_COIN, COLLECTOR_COIN, 1],
-        [COLLECTOR_COIN, COLLECTOR_COIN, 2],
-        [COLLECTOR_COIN, COLLECTOR_COIN, 3],
-        [1, 2, 3],
-        [4, 5, 6],
-      ],
-      bet:        betConfig(totalBet),
-      win:        0,
-      wins:       [],
-      coingames:  3,
-      remaining:  0,
-      start:      true,
-      end:        false,
-      collection: 6,
-      trigger:    true,
-      seed:       34567,
+      display,
+      coins,
+      initial:       null,
+      coinsInitial:  null,
+      bet:           betConfig(totalBet),
+      win:           0,
+      wins:          [],
+      collection:    6,
+      scenarioId:    34567,
+      RoundMetadata: { betType: '' },
+      coingames:     3,
+      remaining:     0,
+      start:         true,
+      end:           false,
+      trigger:       true,
     };
   }
 
@@ -314,17 +342,21 @@ export class SpinInterceptor {
       Array.from({ length: ROWS }, () => COLLECTOR_COIN),
     );
     return {
-      display:    coinGrid,
-      bet:        betConfig(totalBet),
-      win:        winAmt,
-      wins:       [{ amount: winAmt, item: COLLECTOR_COIN, line: -1, count: REELS * ROWS }],
-      coingames:  0,
-      remaining:  0,
-      start:      true,
-      end:        true,
-      collection: REELS * ROWS,
-      trigger:    false,
-      seed:       99999,
+      display:       coinGrid,
+      coins:         coinGrid.map(r => [...r]),
+      initial:       null,
+      coinsInitial:  null,
+      bet:           betConfig(totalBet),
+      win:           winAmt,
+      wins:          [{ amount: winAmt, item: COLLECTOR_COIN, line: -1, count: REELS * ROWS }],
+      collection:    REELS * ROWS,
+      scenarioId:    99999,
+      RoundMetadata: { betType: '' },
+      coingames:     0,
+      remaining:     0,
+      start:         true,
+      end:           true,
+      trigger:       false,
     };
   }
 
@@ -338,16 +370,20 @@ export class SpinInterceptor {
         [7, 8, 1],
         [2, 3, 4],
       ],
-      bet:        betConfig(totalBet),
-      win:        0,
-      wins:       [{ amount: 0, item: 11, line: -1, count: 3, freegames: 10 }],
-      coingames:  0,
-      remaining:  10,
-      start:      true,
-      end:        false,
-      collection: 0,
-      trigger:    false,
-      seed:       45678,
+      coins:         emptyCoins(),
+      initial:       null,
+      coinsInitial:  null,
+      bet:           betConfig(totalBet),
+      win:           0,
+      wins:          [{ amount: 0, item: 11, line: -1, count: 3, freegames: 10 }],
+      collection:    0,
+      scenarioId:    45678,
+      RoundMetadata: { betType: '' },
+      coingames:     0,
+      remaining:     10,
+      start:         true,
+      end:           false,
+      trigger:       false,
     };
   }
 }
