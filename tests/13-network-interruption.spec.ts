@@ -205,8 +205,23 @@ test.describe('Network Interruption & Recovery', () => {
       try {
         await gamePage.spinButton.click();
         await gamePage.page.waitForTimeout(3_000);
-        // Dismiss any error overlay
-        await gamePage.page.mouse.click(640, 360);
+        // Dismiss the network-error popup by trying known button labels,
+        // then fall back to a center-viewport click if none matched.
+        const popupLabels = ['Retry', 'OK', 'Continue', 'Close', 'Try Again', 'Reconnect', 'Reload'];
+        let dismissed = false;
+        for (const label of popupLabels) {
+          try {
+            const btn = gamePage.page.locator(`:text-is("${label}")`).first();
+            if (await btn.isVisible({ timeout: 200 })) {
+              await btn.click({ timeout: 500 });
+              dismissed = true;
+              break;
+            }
+          } catch { /* label not present */ }
+        }
+        if (!dismissed) {
+          await gamePage.page.mouse.click(640, 360);
+        }
         await gamePage.page.waitForTimeout(1_500);
       } catch {
         // Ignore click failures during error state

@@ -680,7 +680,7 @@ export class GamePage {
   private async _dismissOverlayIfPresent(): Promise<boolean> {
     // Try text-based selectors for common overlay dismiss buttons.
     // These cover bonus game win screens ("Start"), error modals ("OK", "Close"), etc.
-    const textCandidates = ['Start', 'OK', 'Continue', 'Close', 'Collect', 'Play'];
+    const textCandidates = ['Start', 'OK', 'Continue', 'Close', 'Collect', 'Play', 'Retry', 'Try Again', 'Reconnect', 'Reload'];
     for (const text of textCandidates) {
       try {
         const el = this.page.locator(`:text-is("${text}")`).first();
