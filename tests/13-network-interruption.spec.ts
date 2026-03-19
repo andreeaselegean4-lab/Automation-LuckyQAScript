@@ -26,6 +26,24 @@ test.describe('Network Interruption & Recovery', () => {
   // Generous timeout — some recovery paths involve retries / reconnect timers
   test.setTimeout(3 * 60 * 1_000);
 
+  /**
+   * Dismiss the game's native error dialog (id="gcw-error-dlg").
+   * The close button always carries id="gcw-error-dlg-close" regardless of its
+   * visible label ("RELOAD", "RETRY", "OK", …). Falls back to a centre-viewport
+   * click if the dialog is not present.
+   */
+  async function dismissErrorDialog(page: import('@playwright/test').Page) {
+    try {
+      const btn = page.locator('#gcw-error-dlg-close');
+      if (await btn.isVisible({ timeout: 1_000 })) {
+        await btn.click({ timeout: 1_000 });
+        await page.waitForTimeout(500);
+        return;
+      }
+    } catch { /* dialog not present */ }
+    await page.mouse.click(640, 360);
+  }
+
   test('mid-spin abort: game recovers without JS crash', async ({ gamePage, consoleErrors }) => {
     let aborted = false;
 
@@ -48,9 +66,9 @@ test.describe('Network Interruption & Recovery', () => {
     // Wait for the game to process the failure (may show an error modal or auto-recover)
     await gamePage.page.waitForTimeout(5_000);
 
-    // Try to dismiss any error/retry overlay by clicking the center of the viewport
-    await gamePage.page.mouse.click(640, 360);
-    await gamePage.page.waitForTimeout(2_000);
+    // Dismiss the game's native error dialog (#gcw-error-dlg-close)
+    await dismissErrorDialog(gamePage.page);
+    await gamePage.page.waitForTimeout(1_000);
 
     // Check the game reached a usable state (spin button visible, even if there's an overlay)
     const spinVisible = await gamePage.spinButton.isVisible();
@@ -97,9 +115,7 @@ test.describe('Network Interruption & Recovery', () => {
     try {
       await gamePage.waitForIdle(30_000);
     } catch {
-      // Click center to dismiss any timeout overlay
-      await gamePage.page.mouse.click(640, 360);
-      await gamePage.page.waitForTimeout(2_000);
+      await dismissErrorDialog(gamePage.page);
     }
 
     await gamePage.page.unroute(DEMOPLAY_PATTERN);
@@ -136,8 +152,7 @@ test.describe('Network Interruption & Recovery', () => {
     await gamePage.page.waitForTimeout(5_000);
 
     // Dismiss any error overlay
-    await gamePage.page.mouse.click(640, 360);
-    await gamePage.page.waitForTimeout(2_000);
+    await dismissErrorDialog(gamePage.page);
 
     // Balance unchanged (server rejected the spin)
     const balanceAfter = await gamePage.getBalance();
@@ -173,8 +188,7 @@ test.describe('Network Interruption & Recovery', () => {
 
     await gamePage.spinButton.click();
     await gamePage.page.waitForTimeout(5_000);
-    await gamePage.page.mouse.click(640, 360);
-    await gamePage.page.waitForTimeout(2_000);
+    await dismissErrorDialog(gamePage.page);
 
     await gamePage.page.unroute(DEMOPLAY_PATTERN);
 
@@ -205,23 +219,7 @@ test.describe('Network Interruption & Recovery', () => {
       try {
         await gamePage.spinButton.click();
         await gamePage.page.waitForTimeout(3_000);
-        // Dismiss the network-error popup by trying known button labels,
-        // then fall back to a center-viewport click if none matched.
-        const popupLabels = ['Retry', 'OK', 'Continue', 'Close', 'Try Again', 'Reconnect', 'Reload'];
-        let dismissed = false;
-        for (const label of popupLabels) {
-          try {
-            const btn = gamePage.page.locator(`:text-is("${label}")`).first();
-            if (await btn.isVisible({ timeout: 200 })) {
-              await btn.click({ timeout: 500 });
-              dismissed = true;
-              break;
-            }
-          } catch { /* label not present */ }
-        }
-        if (!dismissed) {
-          await gamePage.page.mouse.click(640, 360);
-        }
+        await dismissErrorDialog(gamePage.page);
         await gamePage.page.waitForTimeout(1_500);
       } catch {
         // Ignore click failures during error state
@@ -267,8 +265,7 @@ test.describe('Network Interruption & Recovery', () => {
     await gamePage.page.waitForTimeout(6_000);
 
     // Dismiss any error overlay
-    await gamePage.page.mouse.click(640, 360);
-    await gamePage.page.waitForTimeout(2_000);
+    await dismissErrorDialog(gamePage.page);
 
     await gamePage.page.unroute(DEMOPLAY_PATTERN);
     // Ensure the browser context is fully back online before the next spec
