@@ -21,9 +21,13 @@ test.describe('Session Persistence', () => {
   test.setTimeout(2 * 60 * 1_000);
 
   test('balance survives a page reload', async ({ gamePage, gameUrl }) => {
-    // Do one spin so there's a non-initial balance
-    await gamePage.spinAndWait();
+    // Capture balance BEFORE the spin — in demo mode the server restores the
+    // session to this pre-spin value on reload (the spin result lives only in
+    // client localState which is lost on a hard reload).
     const balanceBeforeReload = await gamePage.getBalance();
+
+    // Do one spin to change the client-side balance
+    await gamePage.spinAndWait();
 
     // Reload the page
     await gamePage.page.reload({ waitUntil: 'domcontentloaded' });
@@ -36,9 +40,10 @@ test.describe('Session Persistence', () => {
     await gamePage.page.mouse.click(640, continueY);
     await gamePage.waitForIdle(20_000);
 
-    const balanceAfterReload = await gamePage.getBalance();
+    // getBalanceStable() waits for any balance roll-up animation to settle
+    const balanceAfterReload = await gamePage.getBalanceStable();
 
-    // Balance should match what we had before the reload (within floating-point tolerance)
+    // After reload the server restores the pre-spin balance — diff should be ~0
     expect(Math.abs(balanceAfterReload - balanceBeforeReload)).toBeLessThanOrEqual(0.05);
   });
 
