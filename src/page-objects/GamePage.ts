@@ -678,8 +678,19 @@ export class GamePage {
    */
   /** Returns true if an overlay was found and dismissed */
   private async _dismissOverlayIfPresent(): Promise<boolean> {
-    // Try text-based selectors for common overlay dismiss buttons.
-    // These cover bonus game win screens ("Start"), error modals ("OK", "Close"), etc.
+    // First: the game's native error dialog (bonsai-gold-2 / Novomatic wrapper).
+    // The close button always has id="gcw-error-dlg-close" regardless of its
+    // label text ("RELOAD", "RETRY", "OK", …), so target by id.
+    try {
+      const dlgClose = this.page.locator('#gcw-error-dlg-close');
+      if (await dlgClose.isVisible({ timeout: 100 })) {
+        await dlgClose.click({ timeout: 500 });
+        await this.page.waitForTimeout(500);
+        return true;
+      }
+    } catch { /* not present */ }
+
+    // Fallback: text-based checks for bonus win screens and other overlays.
     const textCandidates = ['Start', 'OK', 'Continue', 'Close', 'Collect', 'Play', 'Retry', 'Try Again', 'Reconnect', 'Reload'];
     for (const text of textCandidates) {
       try {
