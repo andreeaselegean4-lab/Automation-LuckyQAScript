@@ -36,7 +36,7 @@ export default defineConfig({
   use: {
     baseURL: process.env['BASE_URL'] || 'https://gs.avocadospins.com',
 
-    headless: false,
+    headless: true,
 
     // Fixed viewport for deterministic coordinate-based fallbacks
     viewport: { width: 1280, height: 720 },
