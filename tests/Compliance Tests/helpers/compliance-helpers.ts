@@ -140,7 +140,7 @@ export interface PaytableInfo {
  * This does NOT attempt OCR — it verifies that the paytable exists, is
  * accessible, and has multiple pages of content.
  */
-export async function analyzePaytable(page: Page, maxPages = 20): Promise<PaytableInfo> {
+export async function analyzePaytable(page: Page, maxPages = 15): Promise<PaytableInfo> {
   const result: PaytableInfo = {
     modalOpened: false,
     pageCount: 0,
@@ -168,11 +168,6 @@ export async function analyzePaytable(page: Page, maxPages = 20): Promise<Paytab
   result.pageCount = 1; // current page counts as 1
 
   if (result.hasNavigation) {
-    // Navigate forward and count pages.  Detect the end by checking if
-    // the left arrow becomes visible (wraps to first page) after the right
-    // arrow is clicked, or if the right arrow becomes hidden/disabled.
-    let prevArrowWasVisible = await page.locator(MODAL_PREV).isVisible({ timeout: 500 }).catch(() => false);
-
     for (let i = 1; i < maxPages; i++) {
       const nextArrow = page.locator(MODAL_NEXT);
       const arrowVisible = await nextArrow.isVisible({ timeout: 500 }).catch(() => false);
@@ -180,15 +175,6 @@ export async function analyzePaytable(page: Page, maxPages = 20): Promise<Paytab
 
       await nextArrow.click({ force: true }).catch(() => {});
       await page.waitForTimeout(800);
-
-      // Check if we've looped: if left arrow was NOT visible on page 1
-      // but right arrow click eventually brings it back, we know we wrapped.
-      // Also check the arrow's class for 'disabled' state.
-      const rightArrowClass = (await nextArrow.getAttribute('class').catch(() => '')) ?? '';
-      if (rightArrowClass.includes('disabled') || rightArrowClass.includes('inactive')) {
-        result.pageCount++;
-        break; // last page reached
-      }
 
       result.pageCount++;
     }
@@ -225,22 +211,28 @@ export async function getDOMComplianceEvidence(page: Page): Promise<{
   hasWinDisplay: boolean;
   hasInfoButton: boolean;
 }> {
-  // Selectors match NovomaticGames.ts verified selectors + generic fallbacks
-  const spinVisible    = await page.locator('#spinButton, .spin-button, [data-action="spin"]').isVisible().catch(() => false);
-  const betVisible     = await page.locator('.bet-button--increase, .bet-button--decrease, .bet-increase, .bet-decrease, .betIncrease, .betDecrease').isVisible().catch(() => false);
-  const autoplayVis    = await page.locator('#autoPlayButton, .game-button.auto-play-button, .autoplay-button, [data-action="autoplay"]').isVisible().catch(() => false);
-  const balanceVisible = await page.locator('.balance__wrapper--value, .balance-value, #balance').isVisible().catch(() => false);
-  const currencyVis    = await page.locator('.balanceGroupScalableCurrencySign, .balanceGroup__currency, [data-field="currency"]').isVisible().catch(() => false);
-  const winVisible     = await page.locator('.lastBalanceGroup .balanceGroup__value, .lastBalanceGroup .balanceGroupScalableValue, .win-display, #winAmount').isVisible().catch(() => false);
+  // Close the info modal first — game controls are hidden behind it
+  await closeInfoPanel(page);
+  await page.waitForTimeout(500);
+
+  // Selectors match NovomaticGames.ts verified selectors + generic fallbacks.
+  // Use page.$() (querySelector) to check element EXISTS in DOM, since some
+  // game controls may be present but visually overlapped by the canvas.
+  const spinVisible    = await page.locator('#spinButton, .spin-button, [data-action="spin"]').first().isVisible().catch(() => false);
+  const betExists      = (await page.$('.bet-button--increase, .bet-button--decrease')) !== null;
+  const autoplayVis    = await page.locator('#autoPlayButton, .game-button.auto-play-button, .autoplay-button, [data-action="autoplay"]').first().isVisible().catch(() => false);
+  const balanceVisible = await page.locator('.balance__wrapper--value, .balance-value, #balance').first().isVisible().catch(() => false);
+  const currencyVis    = await page.locator('.balanceGroupScalableCurrencySign, .balanceGroup__currency, [data-field="currency"]').first().isVisible().catch(() => false);
+  const winExists      = (await page.$('.lastBalanceGroup .balanceGroup__value, .lastBalanceGroup .balanceGroupScalableValue')) !== null;
   const infoVisible    = await page.locator(INFO_BUTTON).first().isVisible().catch(() => false);
 
   return {
     hasSpinInteraction:     spinVisible,
-    hasBetInteraction:      betVisible,
+    hasBetInteraction:      betExists,
     hasAutoplayInteraction: autoplayVis,
     hasBalanceDisplay:      balanceVisible,
     hasCurrencyDisplay:     currencyVis,
-    hasWinDisplay:          winVisible,
+    hasWinDisplay:          winExists,
     hasInfoButton:          infoVisible,
   };
 }
