@@ -25,6 +25,7 @@ import { type Page } from '@playwright/test';
 import {
   fetchTranslationFile,
   parseTranslationContent,
+  translationCdnUrl,
   type TranslationMap,
 } from '../../../src/utils/translationFetcher';
 
@@ -127,9 +128,48 @@ export async function collectRulesFromTranslation(
   gameId: string,
   locale = 'en',
 ): Promise<{ text: string; map: TranslationMap }> {
-  const result = await fetchTranslationFile(page, gameId, locale);
+  // Strategy 1: fetch via the browser context (page.evaluate + fetch)
+  let result = await fetchTranslationFile(page, gameId, locale);
+
+  // Strategy 2: if browser fetch failed (CORS / CSP), try Playwright's request context
+  // which runs in Node.js and is not subject to browser security restrictions.
   if (!result.ok || !result.content) {
-    console.log(`[compliance] Translation fetch failed: ${result.status} ${result.error ?? ''}`);
+    console.log(
+      `[compliance] Browser-context fetch failed (${result.status} ${result.error ?? ''}). ` +
+      `Trying Node.js fetch via Playwright request context…`,
+    );
+    try {
+      const url = translationCdnUrl(gameId, locale);
+      const apiCtx = page.context().request;
+      const response = await apiCtx.get(url);
+      if (response.ok()) {
+        result = { ok: true, status: response.status(), content: await response.text() };
+      } else {
+        console.log(`[compliance] Playwright request context also failed: ${response.status()}`);
+      }
+    } catch (err) {
+      console.log(`[compliance] Playwright request context error: ${err}`);
+    }
+  }
+
+  // Strategy 3: if both above failed, try Node.js native fetch (Node 18+)
+  if (!result.ok || !result.content) {
+    console.log('[compliance] Trying Node.js native fetch…');
+    try {
+      const url = translationCdnUrl(gameId, locale);
+      const res = await fetch(url);
+      if (res.ok) {
+        result = { ok: true, status: res.status, content: await res.text() };
+      } else {
+        console.log(`[compliance] Node.js fetch also failed: ${res.status}`);
+      }
+    } catch (err) {
+      console.log(`[compliance] Node.js fetch error: ${err}`);
+    }
+  }
+
+  if (!result.ok || !result.content) {
+    console.log('[compliance] All translation fetch strategies failed.');
     return { text: '', map: {} };
   }
 
