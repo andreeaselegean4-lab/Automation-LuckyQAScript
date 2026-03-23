@@ -59,9 +59,14 @@ export default defineConfig({
             '--ignore-gpu-blocklist',
             '--enable-webgl',
             '--enable-webgl2',
-            '--use-gl=swiftshader',          // explicitly force SwiftShader WebGL in headless mode
+            // SwiftShader is the software WebGL renderer used in headless Chrome.
+            // --use-gl=angle routes WebGL through ANGLE using SwiftShader backend,
+            // which is the correct path for headless on macOS / Apple Silicon.
+            '--use-gl=angle',
+            '--use-angle=swiftshader-webgl',
             '--disable-gpu-sandbox',
-            '--disable-software-rasterizer', // force hardware/swiftshader path, not pure software
+            // NOTE: do NOT add --disable-software-rasterizer — SwiftShader IS the
+            // software rasterizer; disabling it kills WebGL in headless mode.
             '--disable-background-timer-throttling',
             '--disable-renderer-backgrounding',
             '--disable-backgrounding-occluded-windows',
