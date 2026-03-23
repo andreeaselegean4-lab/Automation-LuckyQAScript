@@ -154,8 +154,9 @@ export async function analyzePaytable(page: Page, maxPages = 20): Promise<Paytab
 
   await page.waitForTimeout(2_000);
 
-  // Check for canvas inside the modal (WebGL-rendered paytable content)
-  result.hasCanvas = await page.locator(`${MODAL} canvas`).isVisible().catch(() => false);
+  // Check for canvas on the page.  Novomatic games use a single full-page
+  // <canvas> — the modal is a DOM overlay on top of it, not a container.
+  result.hasCanvas = await page.locator('canvas').first().isVisible().catch(() => false);
 
   // Collect any DOM text inside the modal
   result.modalDOMText = (await page.locator(MODAL).textContent().catch(() => '')) ?? '';
@@ -167,8 +168,10 @@ export async function analyzePaytable(page: Page, maxPages = 20): Promise<Paytab
   result.pageCount = 1; // current page counts as 1
 
   if (result.hasNavigation) {
-    // Take a screenshot hash of the first page to detect looping
-    const firstPageScreenshot = await screenshotModalHash(page);
+    // Navigate forward and count pages.  Detect the end by checking if
+    // the left arrow becomes visible (wraps to first page) after the right
+    // arrow is clicked, or if the right arrow becomes hidden/disabled.
+    let prevArrowWasVisible = await page.locator(MODAL_PREV).isVisible({ timeout: 500 }).catch(() => false);
 
     for (let i = 1; i < maxPages; i++) {
       const nextArrow = page.locator(MODAL_NEXT);
@@ -178,10 +181,13 @@ export async function analyzePaytable(page: Page, maxPages = 20): Promise<Paytab
       await nextArrow.click({ force: true }).catch(() => {});
       await page.waitForTimeout(800);
 
-      // Check if we've looped back to the first page
-      if (i >= 2) {
-        const currentHash = await screenshotModalHash(page);
-        if (currentHash === firstPageScreenshot) break;
+      // Check if we've looped: if left arrow was NOT visible on page 1
+      // but right arrow click eventually brings it back, we know we wrapped.
+      // Also check the arrow's class for 'disabled' state.
+      const rightArrowClass = (await nextArrow.getAttribute('class').catch(() => '')) ?? '';
+      if (rightArrowClass.includes('disabled') || rightArrowClass.includes('inactive')) {
+        result.pageCount++;
+        break; // last page reached
       }
 
       result.pageCount++;
@@ -195,31 +201,6 @@ export async function analyzePaytable(page: Page, maxPages = 20): Promise<Paytab
   );
 
   return result;
-}
-
-/**
- * Take a screenshot of the modal area and return a simple hash to detect
- * identical pages (for loop detection).
- */
-async function screenshotModalHash(page: Page): Promise<string> {
-  try {
-    const modal = page.locator(MODAL);
-    const box = await modal.boundingBox().catch(() => null);
-    if (!box) return '';
-
-    const buffer = await page.screenshot({
-      clip: { x: box.x, y: box.y, width: box.width, height: box.height },
-    });
-
-    // Simple hash: sum of every 100th byte
-    let hash = 0;
-    for (let i = 0; i < buffer.length; i += 100) {
-      hash = (hash * 31 + buffer[i]) | 0;
-    }
-    return String(hash);
-  } catch {
-    return '';
-  }
 }
 
 // ── DOM evidence helpers ─────────────────────────────────────────────────────
@@ -244,12 +225,13 @@ export async function getDOMComplianceEvidence(page: Page): Promise<{
   hasWinDisplay: boolean;
   hasInfoButton: boolean;
 }> {
+  // Selectors match NovomaticGames.ts verified selectors + generic fallbacks
   const spinVisible    = await page.locator('#spinButton, .spin-button, [data-action="spin"]').isVisible().catch(() => false);
-  const betVisible     = await page.locator('.bet-increase, .bet-decrease, .betIncrease, .betDecrease, #betIncrease, #betDecrease').isVisible().catch(() => false);
-  const autoplayVis    = await page.locator('.autoplay-button, #autoplayButton, [data-action="autoplay"]').isVisible().catch(() => false);
+  const betVisible     = await page.locator('.bet-button--increase, .bet-button--decrease, .bet-increase, .bet-decrease, .betIncrease, .betDecrease').isVisible().catch(() => false);
+  const autoplayVis    = await page.locator('#autoPlayButton, .game-button.auto-play-button, .autoplay-button, [data-action="autoplay"]').isVisible().catch(() => false);
   const balanceVisible = await page.locator('.balance__wrapper--value, .balance-value, #balance').isVisible().catch(() => false);
-  const currencyVis    = await page.locator('.balanceGroupScalableCurrencySign, .currency, [data-field="currency"]').isVisible().catch(() => false);
-  const winVisible     = await page.locator('.win, .win-display, #winAmount, .winValue').isVisible().catch(() => false);
+  const currencyVis    = await page.locator('.balanceGroupScalableCurrencySign, .balanceGroup__currency, [data-field="currency"]').isVisible().catch(() => false);
+  const winVisible     = await page.locator('.lastBalanceGroup .balanceGroup__value, .lastBalanceGroup .balanceGroupScalableValue, .win-display, #winAmount').isVisible().catch(() => false);
   const infoVisible    = await page.locator(INFO_BUTTON).first().isVisible().catch(() => false);
 
   return {
