@@ -206,10 +206,30 @@ export class GamePage {
    */
   async load(url: string): Promise<void> {
     await this.interceptor.install();
-    await this.page.goto(url, { waitUntil: 'domcontentloaded' });
+
+    // Navigate and capture the HTTP status
+    const response = await this.page.goto(url, { waitUntil: 'domcontentloaded' });
+    const httpStatus = response?.status() ?? 0;
+    const finalUrl   = this.page.url();
+    console.log(`[GamePage.load] HTTP ${httpStatus} — ${finalUrl.substring(0, 120)}…`);
+
+    if (httpStatus >= 400 || httpStatus === 0) {
+      const bodySnippet = await this.page.locator('body').textContent().catch(() => '') ?? '';
+      throw new Error(
+        `Game page failed to load (HTTP ${httpStatus}).\n` +
+        `URL: ${url.substring(0, 150)}…\n` +
+        `Body: ${bodySnippet.substring(0, 300)}\n` +
+        'Likely cause: expired gstoken — check that global-setup refreshed the token successfully.',
+      );
+    }
+
     // Wait for the intro overlay (.loading-screen.ready) — added when assets finish loading.
     // If it never appears (rare: already dismissed or different build), proceed anyway.
-    await this.page.waitForSelector(this._sel.loadingScreenReady, { timeout: 90_000 }).catch(() => {});
+    const loadingScreenFound = await this.page
+      .waitForSelector(this._sel.loadingScreenReady, { timeout: 90_000 })
+      .then(() => true)
+      .catch(() => false);
+    console.log(`[GamePage.load] Loading screen (.loading-screen.ready): ${loadingScreenFound ? 'found' : 'NOT found (timed out)'}`);
     await this.page.waitForTimeout(1_800);
 
     // Dismiss intro / loading screen — try multiple strategies for cross-game compatibility.
@@ -228,6 +248,7 @@ export class GamePage {
 
     const spinAppeared = await this.page.locator(this._sel.spinButton)
       .first().waitFor({ state: 'attached', timeout: 5_000 }).then(() => true).catch(() => false);
+    console.log(`[GamePage.load] Spin button after first dismiss: ${spinAppeared ? 'found' : 'NOT found — trying fallbacks'}`);
 
     if (!spinAppeared) {
       // Strategy 3: Use canvas center click helper (tries DOM text buttons + multiple positions)
@@ -242,6 +263,13 @@ export class GamePage {
       await this.page.waitForTimeout(1_000);
       // Strategy 5: Try to dismiss any overlay (error dialog, bonus screen, etc.)
       await this._dismissOverlayIfPresent();
+
+      // Log the current DOM state for debugging
+      const allElements = await this.page.evaluate(() => {
+        const els = document.querySelectorAll('button, [id], .game-button, canvas');
+        return Array.from(els).map(e => `${e.tagName}#${e.id}.${e.className}`.substring(0, 80));
+      }).catch(() => [] as string[]);
+      console.log(`[GamePage.load] DOM elements after fallbacks (${allElements.length}):`, allElements.slice(0, 15));
     }
 
     await this.waitForIdle(20_000);
