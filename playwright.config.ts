@@ -52,26 +52,23 @@ export default defineConfig({
       name: 'chromium',
       use: {
         ...devices['Desktop Chrome'],
-        // SwiftShader WebGL so the PixiJS canvas renders correctly in headless mode
+        // Use system Chrome instead of Playwright's bundled Chromium.
+        // The bundled Chromium lacks WebGL support on macOS / Apple Silicon
+        // in headless mode, causing "WebGL not supported!" from PixiJS games.
+        // System Chrome uses the real GPU, so WebGL works in both headed
+        // and headless modes.
+        channel: 'chrome',
         launchOptions: {
           args: [
             '--disable-web-security',
             '--ignore-gpu-blocklist',
             '--enable-webgl',
             '--enable-webgl2',
-            // SwiftShader is the software WebGL renderer used in headless Chrome.
-            // --use-gl=angle routes WebGL through ANGLE using SwiftShader backend,
-            // which is the correct path for headless on macOS / Apple Silicon.
-            '--use-gl=angle',
-            '--use-angle=swiftshader-webgl',
             '--disable-gpu-sandbox',
-            // NOTE: do NOT add --disable-software-rasterizer — SwiftShader IS the
-            // software rasterizer; disabling it kills WebGL in headless mode.
             '--disable-background-timer-throttling',
             '--disable-renderer-backgrounding',
             '--disable-backgrounding-occluded-windows',
             '--autoplay-policy=no-user-gesture-required',
-            '--no-sandbox',
           ],
         },
       },
