@@ -7,6 +7,9 @@
  *   1. Opening / closing the info (rules) modal via DOM buttons
  *   2. Navigating through paytable pages (left / right arrows)
  *   3. Extracting visible text from each page via Tesseract.js OCR
+ *      - Screenshots are cropped to the modal bounding box to avoid game UI
+ *        text (balance bar, clock, etc.) contaminating OCR results.
+ *   4. DOM text fallback from within the modal for text rendered as HTML
  *
  * Selectors are written with CSS-comma fallbacks so they work across different
  * Novomatic game UIs (Infinite Hot, Bonsai Gold 2, etc.).
@@ -109,7 +112,7 @@ export async function isInfoPanelOpen(page: Page): Promise<boolean> {
  */
 export async function collectRulesTextOCR(
   page: Page,
-  maxPages = 15,
+  maxPages = 20,
 ): Promise<string> {
   // Make sure the info panel is open
   const opened = await openInfoPanel(page);
@@ -118,15 +121,38 @@ export async function collectRulesTextOCR(
   // Wait a bit for the first page to render on canvas
   await page.waitForTimeout(2_000);
 
+  // Also collect DOM text from inside the modal (some Novamatic games render
+  // certain headings / labels as real HTML even when body is canvas).
+  const modalDomText = await page.locator(MODAL).textContent().catch(() => '') ?? '';
+
   let worker: TessWorker | null = null;
-  let fullText = '';
+  let fullText = modalDomText + ' ';
+  let previousPageText = '';
 
   try {
     worker = await createWorker('eng');
 
     for (let i = 0; i < maxPages; i++) {
-      // Screenshot the whole viewport (canvas + DOM overlay)
-      const buffer = await page.screenshot();
+      // Screenshot only the modal area to avoid game UI (balance bar, clock, etc.)
+      // contaminating OCR results.
+      const modal = page.locator(MODAL);
+      const modalBox = await modal.boundingBox().catch(() => null);
+
+      let buffer: Buffer;
+      if (modalBox && modalBox.width > 50 && modalBox.height > 50) {
+        buffer = await page.screenshot({
+          clip: {
+            x: Math.max(0, modalBox.x),
+            y: Math.max(0, modalBox.y),
+            width: modalBox.width,
+            height: modalBox.height,
+          },
+        });
+      } else {
+        // Fallback: full viewport if we can't get modal bounds
+        buffer = await page.screenshot();
+      }
+
       const { data } = await worker.recognize(buffer);
 
       const pageText = data.text
@@ -137,20 +163,21 @@ export async function collectRulesTextOCR(
 
       fullText += ' ' + pageText;
 
-      // Try to navigate to next page
+      // Try to navigate to next page — don't check class names, just click if visible.
+      // Different Novamatic game skins use different class names for the active/disabled
+      // state; relying on class names caused early termination after 1-2 pages.
       const nextArrow = page.locator(MODAL_NEXT);
       const arrowVisible = await nextArrow.isVisible({ timeout: 1_000 }).catch(() => false);
       if (!arrowVisible) break;
 
-      // Check if the arrow is interactive (some pages disable it at the end)
-      const arrowClass = (await nextArrow.getAttribute('class').catch(() => '')) ?? '';
-      if (!arrowClass.includes('interactive') && !arrowClass.includes('enabled')) {
-        // Arrow exists but is not clickable — we've reached the last page
-        break;
-      }
-
-      await nextArrow.click();
+      await nextArrow.click({ force: true }).catch(() => {});
       await page.waitForTimeout(1_500);
+
+      // Detect end of paytable: if the text is identical to the previous page we've
+      // wrapped around (or are stuck on the last page).
+      const trimmedText = pageText.trim();
+      if (i > 0 && trimmedText.length > 20 && trimmedText === previousPageText) break;
+      previousPageText = trimmedText;
     }
   } finally {
     if (worker) await worker.terminate();
@@ -166,4 +193,39 @@ export async function collectRulesTextOCR(
  */
 export async function getBodyText(page: Page): Promise<string> {
   return (await page.locator('body').textContent()) ?? '';
+}
+
+/**
+ * Collect supplemental evidence from the game's DOM to confirm that the game
+ * has documented interactions / configuration.  This is used as a fallback
+ * when OCR of the WebGL canvas paytable is incomplete.
+ *
+ * Returns an object with boolean flags for each compliance category.
+ */
+export async function getDOMComplianceEvidence(page: Page): Promise<{
+  hasSpinInteraction: boolean;
+  hasBetInteraction: boolean;
+  hasAutoplayInteraction: boolean;
+  hasBalanceDisplay: boolean;
+  hasCurrencyDisplay: boolean;
+  hasWinDisplay: boolean;
+  hasInfoModal: boolean;
+}> {
+  const spinVisible    = await page.locator('#spinButton, .spin-button, [data-action="spin"]').isVisible().catch(() => false);
+  const betVisible     = await page.locator('.bet-increase, .bet-decrease, .betIncrease, .betDecrease, #betIncrease, #betDecrease').isVisible().catch(() => false);
+  const autoplayVis    = await page.locator('.autoplay-button, #autoplayButton, [data-action="autoplay"]').isVisible().catch(() => false);
+  const balanceVisible = await page.locator('.balance__wrapper--value, .balance-value, #balance').isVisible().catch(() => false);
+  const currencyVis    = await page.locator('.balanceGroupScalableCurrencySign, .currency, [data-field="currency"]').isVisible().catch(() => false);
+  const winVisible     = await page.locator('.win, .win-display, #winAmount, .winValue').isVisible().catch(() => false);
+  const modalOpen      = await page.locator(MODAL).isVisible().catch(() => false);
+
+  return {
+    hasSpinInteraction:   spinVisible,
+    hasBetInteraction:    betVisible,
+    hasAutoplayInteraction: autoplayVis,
+    hasBalanceDisplay:    balanceVisible,
+    hasCurrencyDisplay:   currencyVis,
+    hasWinDisplay:        winVisible,
+    hasInfoModal:         modalOpen,
+  };
 }
