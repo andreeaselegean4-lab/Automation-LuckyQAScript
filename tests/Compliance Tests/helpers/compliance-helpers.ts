@@ -2,21 +2,31 @@
  * Shared helpers for MGA & IOM compliance tests.
  *
  * The Novomatic game engine renders paytable / rules content on a WebGL canvas,
- * NOT as HTML text nodes.  These helpers handle:
+ * NOT as HTML text nodes.  Direct OCR of the canvas is unreliable because
+ * Tesseract.js cannot read WebGL-rendered fonts accurately.
  *
- *   1. Opening / closing the info (rules) modal via DOM buttons
- *   2. Navigating through paytable pages (left / right arrows)
- *   3. Extracting visible text from each page via Tesseract.js OCR
- *      - Screenshots are cropped to the modal bounding box to avoid game UI
- *        text (balance bar, clock, etc.) contaminating OCR results.
- *   4. DOM text fallback from within the modal for text rendered as HTML
+ * Instead, these helpers use THREE data sources (in priority order):
+ *
+ *   1. **Translation CDN** — the game's own translation JS files contain ALL
+ *      paytable and rules text (the same text rendered on canvas).
+ *      URL pattern: https://cdn2.avocadospins.com/tr/cms/latest/<gameId>.<locale>.js
+ *
+ *   2. **DOM evidence** — visible game controls (spin, bet, autoplay, balance)
+ *      prove the game has the required interactive elements.
+ *
+ *   3. **Info panel structural checks** — the modal opens, has navigation arrows,
+ *      and contains multiple pages (proves the paytable exists and is accessible).
  *
  * Selectors are written with CSS-comma fallbacks so they work across different
  * Novomatic game UIs (Infinite Hot, Bonsai Gold 2, etc.).
  */
 
 import { type Page } from '@playwright/test';
-import { createWorker, type Worker as TessWorker } from 'tesseract.js';
+import {
+  fetchTranslationFile,
+  parseTranslationContent,
+  type TranslationMap,
+} from '../../../src/utils/translationFetcher';
 
 // ── Info-panel selectors ─────────────────────────────────────────────────────
 
@@ -100,91 +110,41 @@ export async function isInfoPanelOpen(page: Page): Promise<boolean> {
   return page.locator(MODAL).isVisible().catch(() => false);
 }
 
-// ── OCR text extraction ──────────────────────────────────────────────────────
+// ── Translation-based text extraction ────────────────────────────────────────
 
 /**
- * Open the info panel, screenshot every paytable page, OCR each screenshot,
- * and return the combined text of all pages.
+ * Fetch the game's translation file from CDN and return all values joined
+ * into a single searchable string.  This is the PRIMARY source of paytable /
+ * rules text — the same text the game renders on the WebGL canvas.
  *
- * @param page       Playwright Page (game must be loaded and idle)
- * @param maxPages   Maximum number of pages to navigate (safety limit)
- * @returns          Combined OCR text from all paytable pages
+ * @param page     Playwright Page (game must be loaded — fetch runs in browser context)
+ * @param gameId   Game identifier (e.g. "bonsai-gold-2")
+ * @param locale   Locale code (default "en")
+ * @returns        Combined text of all translation values, or '' if fetch fails
  */
-export async function collectRulesTextOCR(
+export async function collectRulesFromTranslation(
   page: Page,
-  maxPages = 20,
-): Promise<string> {
-  // Make sure the info panel is open
-  const opened = await openInfoPanel(page);
-  if (!opened) return '';
-
-  // Wait a bit for the first page to render on canvas
-  await page.waitForTimeout(2_000);
-
-  // Also collect DOM text from inside the modal (some Novamatic games render
-  // certain headings / labels as real HTML even when body is canvas).
-  const modalDomText = await page.locator(MODAL).textContent().catch(() => '') ?? '';
-
-  let worker: TessWorker | null = null;
-  let fullText = modalDomText + ' ';
-  let previousPageText = '';
-
-  try {
-    worker = await createWorker('eng');
-
-    for (let i = 0; i < maxPages; i++) {
-      // Screenshot only the modal area to avoid game UI (balance bar, clock, etc.)
-      // contaminating OCR results.
-      const modal = page.locator(MODAL);
-      const modalBox = await modal.boundingBox().catch(() => null);
-
-      let buffer: Buffer;
-      if (modalBox && modalBox.width > 50 && modalBox.height > 50) {
-        buffer = await page.screenshot({
-          clip: {
-            x: Math.max(0, modalBox.x),
-            y: Math.max(0, modalBox.y),
-            width: modalBox.width,
-            height: modalBox.height,
-          },
-        });
-      } else {
-        // Fallback: full viewport if we can't get modal bounds
-        buffer = await page.screenshot();
-      }
-
-      const { data } = await worker.recognize(buffer);
-
-      const pageText = data.text
-        .split('\n')
-        .map((l: string) => l.trim())
-        .filter((l: string) => l.length >= 2)
-        .join(' ');
-
-      fullText += ' ' + pageText;
-
-      // Try to navigate to next page — don't check class names, just click if visible.
-      // Different Novamatic game skins use different class names for the active/disabled
-      // state; relying on class names caused early termination after 1-2 pages.
-      const nextArrow = page.locator(MODAL_NEXT);
-      const arrowVisible = await nextArrow.isVisible({ timeout: 1_000 }).catch(() => false);
-      if (!arrowVisible) break;
-
-      await nextArrow.click({ force: true }).catch(() => {});
-      await page.waitForTimeout(1_500);
-
-      // Detect end of paytable: if the text is identical to the previous page we've
-      // wrapped around (or are stuck on the last page).
-      const trimmedText = pageText.trim();
-      if (i > 0 && trimmedText.length > 20 && trimmedText === previousPageText) break;
-      previousPageText = trimmedText;
-    }
-  } finally {
-    if (worker) await worker.terminate();
+  gameId: string,
+  locale = 'en',
+): Promise<{ text: string; map: TranslationMap }> {
+  const result = await fetchTranslationFile(page, gameId, locale);
+  if (!result.ok || !result.content) {
+    console.log(`[compliance] Translation fetch failed: ${result.status} ${result.error ?? ''}`);
+    return { text: '', map: {} };
   }
 
-  return fullText;
+  const map = parseTranslationContent(result.content);
+  const text = Object.values(map).join(' ');
+
+  console.log(
+    `[compliance] Translation loaded: ${Object.keys(map).length} keys, ` +
+    `${text.length} chars total. Sample keys: ${Object.keys(map).slice(0, 8).join(', ')}`,
+  );
+
+  return { text, map };
 }
+
+// ── DOM evidence helpers ─────────────────────────────────────────────────────
 
 /**
  * Get all DOM text from the page body.
@@ -197,8 +157,8 @@ export async function getBodyText(page: Page): Promise<string> {
 
 /**
  * Collect supplemental evidence from the game's DOM to confirm that the game
- * has documented interactions / configuration.  This is used as a fallback
- * when OCR of the WebGL canvas paytable is incomplete.
+ * has documented interactions / configuration.  This is used alongside
+ * translation text when verifying compliance.
  *
  * Returns an object with boolean flags for each compliance category.
  */
