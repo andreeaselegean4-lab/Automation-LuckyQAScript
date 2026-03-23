@@ -212,11 +212,37 @@ export class GamePage {
     await this.page.waitForSelector(this._sel.loadingScreenReady, { timeout: 90_000 }).catch(() => {});
     await this.page.waitForTimeout(1_800);
 
-    // Dismiss intro animation — click near bottom-center of viewport
-    const viewport = this.page.viewportSize();
-    const cx = Math.round((viewport?.width  ?? 1280) / 2);
-    const cy = Math.round((viewport?.height ?? 720)  * 0.9);
-    await this.page.mouse.click(cx, cy);
+    // Dismiss intro / loading screen — try multiple strategies for cross-game compatibility.
+    // Strategy 1: Click the loading screen element directly (works for most Novomatic games).
+    await this.page.locator(this._sel.loadingScreen).click({ force: true }).catch(async () => {
+      // Strategy 2: Blind click near bottom-center of viewport (legacy fallback).
+      const vp = this.page.viewportSize();
+      const cx = Math.round((vp?.width  ?? 1280) / 2);
+      const cy = Math.round((vp?.height ?? 720)  * 0.9);
+      await this.page.mouse.click(cx, cy);
+    });
+
+    // Wait briefly, then check if the spin button appeared.
+    // If not, try canvas center clicks and overlay dismissal as additional strategies.
+    await this.page.waitForTimeout(2_000);
+
+    const spinAppeared = await this.page.locator(this._sel.spinButton)
+      .first().waitFor({ state: 'attached', timeout: 5_000 }).then(() => true).catch(() => false);
+
+    if (!spinAppeared) {
+      // Strategy 3: Use canvas center click helper (tries DOM text buttons + multiple positions)
+      await this._clickCanvasCenter();
+      await this.page.waitForTimeout(1_000);
+      // Strategy 4: Click viewport center
+      const vp = this.page.viewportSize();
+      await this.page.mouse.click(
+        Math.round((vp?.width  ?? 1280) / 2),
+        Math.round((vp?.height ?? 720)  / 2),
+      );
+      await this.page.waitForTimeout(1_000);
+      // Strategy 5: Try to dismiss any overlay (error dialog, bonus screen, etc.)
+      await this._dismissOverlayIfPresent();
+    }
 
     await this.waitForIdle(20_000);
     await this.balance.init();
