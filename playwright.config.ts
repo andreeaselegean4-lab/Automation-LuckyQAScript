@@ -58,11 +58,15 @@ export default defineConfig({
             '--disable-web-security',
             '--ignore-gpu-blocklist',
             '--enable-webgl',
+            '--enable-webgl2',
+            '--use-gl=swiftshader',          // explicitly force SwiftShader WebGL in headless mode
             '--disable-gpu-sandbox',
+            '--disable-software-rasterizer', // force hardware/swiftshader path, not pure software
             '--disable-background-timer-throttling',
             '--disable-renderer-backgrounding',
             '--disable-backgrounding-occluded-windows',
             '--autoplay-policy=no-user-gesture-required',
+            '--no-sandbox',
           ],
         },
       },

@@ -207,6 +207,15 @@ export class GamePage {
   async load(url: string): Promise<void> {
     await this.interceptor.install();
 
+    // Capture console errors and uncaught JS exceptions during load for diagnostics
+    const loadErrors: string[] = [];
+    const errHandler     = (msg: import('@playwright/test').ConsoleMessage) => {
+      if (msg.type() === 'error') loadErrors.push(`console.error: ${msg.text()}`);
+    };
+    const pageErrHandler = (err: Error) => loadErrors.push(`pageerror: ${err.message}`);
+    this.page.on('console',   errHandler);
+    this.page.on('pageerror', pageErrHandler);
+
     // Navigate and capture the HTTP status
     const response = await this.page.goto(url, { waitUntil: 'domcontentloaded' });
     const httpStatus = response?.status() ?? 0;
@@ -264,13 +273,26 @@ export class GamePage {
       // Strategy 5: Try to dismiss any overlay (error dialog, bonus screen, etc.)
       await this._dismissOverlayIfPresent();
 
-      // Log the current DOM state for debugging
+      // Log console errors and DOM state for debugging
+      if (loadErrors.length > 0) {
+        console.log(`[GamePage.load] Console/JS errors during load (${loadErrors.length}):`, loadErrors.slice(0, 10));
+      }
       const allElements = await this.page.evaluate(() => {
         const els = document.querySelectorAll('button, [id], .game-button, canvas');
         return Array.from(els).map(e => `${e.tagName}#${e.id}.${e.className}`.substring(0, 80));
       }).catch(() => [] as string[]);
       console.log(`[GamePage.load] DOM elements after fallbacks (${allElements.length}):`, allElements.slice(0, 15));
+
+      // Log full page HTML snippet for deep diagnosis
+      const htmlSnippet = await this.page.evaluate(
+        () => document.documentElement.innerHTML.substring(0, 800),
+      ).catch(() => '');
+      console.log(`[GamePage.load] Page HTML snippet:`, htmlSnippet);
     }
+
+    // Clean up listeners
+    this.page.off('console',   errHandler);
+    this.page.off('pageerror', pageErrHandler);
 
     await this.waitForIdle(20_000);
     await this.balance.init();
