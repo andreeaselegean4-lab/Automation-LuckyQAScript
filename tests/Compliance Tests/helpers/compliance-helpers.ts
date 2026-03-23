@@ -128,15 +128,102 @@ export async function collectRulesFromTranslation(
   gameId: string,
   locale = 'en',
 ): Promise<{ text: string; map: TranslationMap }> {
-  // Strategy 1: fetch via the browser context (page.evaluate + fetch)
+  // ── Strategy 1: Extract translations already loaded in the game's JS context ──
+  // The game engine loads translations via <script> tags at startup.  They end up
+  // on window objects like window.__translations, window.translations, or inside
+  // the game engine's internal state.  We search for them in the browser context.
+  try {
+    const extracted = await page.evaluate(() => {
+      // Check common global variables where Novamatic games store translations
+      const candidates: unknown[] = [
+        (window as any).__translations,
+        (window as any).translations,
+        (window as any).i18n,
+        (window as any).T,
+        (window as any).__i18n,
+      ];
+
+      for (const obj of candidates) {
+        if (obj && typeof obj === 'object' && Object.keys(obj as any).length > 5) {
+          return JSON.stringify(obj);
+        }
+      }
+
+      // Fallback: search all script tags for inline translation content
+      const scripts = Array.from(document.querySelectorAll('script:not([src])'));
+      for (const script of scripts) {
+        const text = script.textContent ?? '';
+        if (text.includes('translations') || text.includes('paytable') || text.includes('rtp')) {
+          // Try to extract the JSON object from the script
+          const jsonMatch = text.match(/=\s*(\{[\s\S]*\})\s*;?\s*$/);
+          if (jsonMatch?.[1]) {
+            try {
+              JSON.parse(jsonMatch[1]); // validate
+              return jsonMatch[1];
+            } catch { /* not valid JSON */ }
+          }
+        }
+      }
+
+      return null;
+    });
+
+    if (extracted) {
+      const map = parseTranslationContent(extracted);
+      if (Object.keys(map).length > 0) {
+        const text = Object.values(map).join(' ');
+        console.log(
+          `[compliance] Translations extracted from window context: ${Object.keys(map).length} keys, ` +
+          `${text.length} chars. Sample keys: ${Object.keys(map).slice(0, 8).join(', ')}`,
+        );
+        return { text, map };
+      }
+    }
+    console.log('[compliance] No translations found in window context.');
+  } catch (err) {
+    console.log(`[compliance] Window context extraction error: ${err}`);
+  }
+
+  // ── Strategy 2: Intercept the translation <script> that the game loaded ──
+  // Check the performance entries for any script URL containing '/tr/' or the gameId.
+  try {
+    const translationContent = await page.evaluate(async (gId: string) => {
+      // Look at all loaded scripts for translation-like URLs
+      const allScripts = Array.from(document.querySelectorAll('script[src]'));
+      for (const script of allScripts) {
+        const src = script.getAttribute('src') ?? '';
+        if (src.includes('/tr/') || src.includes(gId)) {
+          try {
+            const res = await fetch(src, { cache: 'force-cache' });
+            if (res.ok) return await res.text();
+          } catch { /* skip */ }
+        }
+      }
+      return null;
+    }, gameId);
+
+    if (translationContent) {
+      const map = parseTranslationContent(translationContent);
+      if (Object.keys(map).length > 0) {
+        const text = Object.values(map).join(' ');
+        console.log(
+          `[compliance] Translation from cached script: ${Object.keys(map).length} keys, ` +
+          `${text.length} chars.`,
+        );
+        return { text, map };
+      }
+    }
+    console.log('[compliance] No translation script found in DOM.');
+  } catch (err) {
+    console.log(`[compliance] Script extraction error: ${err}`);
+  }
+
+  // ── Strategy 3: CDN fetch (browser context → Playwright request → Node.js) ──
   let result = await fetchTranslationFile(page, gameId, locale);
 
-  // Strategy 2: if browser fetch failed (CORS / CSP), try Playwright's request context
-  // which runs in Node.js and is not subject to browser security restrictions.
   if (!result.ok || !result.content) {
     console.log(
-      `[compliance] Browser-context fetch failed (${result.status} ${result.error ?? ''}). ` +
-      `Trying Node.js fetch via Playwright request context…`,
+      `[compliance] Browser CDN fetch failed (${result.status}). Trying Playwright request context…`,
     );
     try {
       const url = translationCdnUrl(gameId, locale);
@@ -144,44 +231,31 @@ export async function collectRulesFromTranslation(
       const response = await apiCtx.get(url);
       if (response.ok()) {
         result = { ok: true, status: response.status(), content: await response.text() };
-      } else {
-        console.log(`[compliance] Playwright request context also failed: ${response.status()}`);
       }
-    } catch (err) {
-      console.log(`[compliance] Playwright request context error: ${err}`);
-    }
+    } catch { /* skip */ }
   }
 
-  // Strategy 3: if both above failed, try Node.js native fetch (Node 18+)
   if (!result.ok || !result.content) {
-    console.log('[compliance] Trying Node.js native fetch…');
     try {
       const url = translationCdnUrl(gameId, locale);
       const res = await fetch(url);
       if (res.ok) {
         result = { ok: true, status: res.status, content: await res.text() };
-      } else {
-        console.log(`[compliance] Node.js fetch also failed: ${res.status}`);
       }
-    } catch (err) {
-      console.log(`[compliance] Node.js fetch error: ${err}`);
-    }
+    } catch { /* skip */ }
   }
 
-  if (!result.ok || !result.content) {
-    console.log('[compliance] All translation fetch strategies failed.');
-    return { text: '', map: {} };
+  if (result.ok && result.content) {
+    const map = parseTranslationContent(result.content);
+    const text = Object.values(map).join(' ');
+    console.log(
+      `[compliance] Translation from CDN: ${Object.keys(map).length} keys, ${text.length} chars.`,
+    );
+    return { text, map };
   }
 
-  const map = parseTranslationContent(result.content);
-  const text = Object.values(map).join(' ');
-
-  console.log(
-    `[compliance] Translation loaded: ${Object.keys(map).length} keys, ` +
-    `${text.length} chars total. Sample keys: ${Object.keys(map).slice(0, 8).join(', ')}`,
-  );
-
-  return { text, map };
+  console.log('[compliance] All translation strategies failed.');
+  return { text: '', map: {} };
 }
 
 // ── DOM evidence helpers ─────────────────────────────────────────────────────
