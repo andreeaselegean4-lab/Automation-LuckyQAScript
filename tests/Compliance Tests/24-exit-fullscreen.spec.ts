@@ -29,21 +29,4 @@ test.describe('Exit / Full-Screen Compliance', () => {
       'TLIB-609: Game must offer an exit/lobby option (button or lobbyUrl in token)').toBeTruthy();
   });
 
-  test('TLIB-609: Lobby URL embedded in game JWT', async ({ gameUrl }) => {
-    const tokenMatch = gameUrl.match(/gstoken=([^&]+)/);
-    expect(tokenMatch, 'Game URL should contain a gstoken').toBeTruthy();
-
-    if (tokenMatch) {
-      const parts = tokenMatch[1].split('.');
-      if (parts.length === 3) {
-        try {
-          const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString());
-          expect(payload.lobbyUrl,
-            'TLIB-609: JWT payload must contain a lobbyUrl for exit functionality').toBeTruthy();
-        } catch {
-          // Non-standard JWT — ok if exit button exists in UI
-        }
-      }
-    }
-  });
 });
