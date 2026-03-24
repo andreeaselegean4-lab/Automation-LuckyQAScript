@@ -12,8 +12,27 @@
 // ── Game Identity ─────────────────────────────────────────────────────────────
 
 export const GAME_ID       = 'bonsai-gold-2';
-export const GAME_BRAND_ID = 'brand1';
+export const GAME_BRAND_ID = '95';   // default brand — see RTP_BRAND_MAP below
 export const GAME_NAME     = 'Bonsai Gold 2: Age of Prosperity';
+
+// ── RTP Brand Configuration ───────────────────────────────────────────────────
+
+/**
+ * Maps the numeric Brand ID (used as `brandId` in the launcher API and JWT)
+ * to its corresponding theoretical RTP percentage.
+ *
+ * To run compliance tests for a specific RTP, set GAME_BRAND_ID in .env:
+ *   GAME_BRAND_ID=90  → tests the 90.0% RTP variant
+ *   GAME_BRAND_ID=93  → tests the 92.5% RTP variant
+ *   GAME_BRAND_ID=94  → tests the 94.0% RTP variant
+ *   GAME_BRAND_ID=95  → tests the 95.0% RTP variant (default)
+ */
+export const RTP_BRAND_MAP: Record<string, number> = {
+  '90': 90.0,
+  '93': 92.5,
+  '94': 94.0,
+  '95': 95.0,
+};
 
 // ── API ───────────────────────────────────────────────────────────────────────
 

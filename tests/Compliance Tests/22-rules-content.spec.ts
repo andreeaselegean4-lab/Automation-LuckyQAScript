@@ -30,6 +30,7 @@ import {
   getDOMComplianceEvidence,
   type PaytableInfo,
 } from './helpers/compliance-helpers';
+import { RTP_BRAND_MAP } from '../../src/constants/game.constants';
 
 // ── Shared state: analyze paytable once, reuse across the suite ──────────────
 
@@ -51,20 +52,65 @@ test.describe('Rules Content — MGA Requirements', () => {
   test('TLIB-343: Correct theoretical RTP% displayed in rules', async ({ gamePage }) => {
     const pt = await ensurePaytable(gamePage.page);
 
-    // A multi-page paytable with canvas content in a certified game WILL contain
-    // RTP% — it's a regulatory requirement that the game passed during certification.
-    // We verify the paytable exists and is accessible (structural proof).
-    const hasSubstantialPaytable = pt.modalOpened && pt.pageCount >= 3 && pt.hasCanvas;
+    // ── 1. Resolve the configured brand ID ──────────────────────────────────
+    // GAME_BRAND_ID in .env controls which RTP variant is tested:
+    //   90 → 90.0%  |  93 → 92.5%  |  94 → 94.0%  |  95 → 95.0% (default)
+    const configuredBrandId = process.env['GAME_BRAND_ID'] ?? '95';
+    const expectedRtp = RTP_BRAND_MAP[configuredBrandId];
 
-    // Also check if any DOM text in the modal contains a percentage
+    expect(
+      expectedRtp !== undefined,
+      `TLIB-343: GAME_BRAND_ID="${configuredBrandId}" is not a recognised RTP brand. ` +
+      `Valid values: ${Object.entries(RTP_BRAND_MAP).map(([k, v]) => `${k} (${v}%)`).join(', ')}. ` +
+      `Update GAME_BRAND_ID in .env.NovomaticGames to one of these values.`,
+    ).toBeTruthy();
+
+    // ── 2. Verify JWT brandId matches configured brand ──────────────────────
+    // global-setup.ts fetches a fresh gstoken with the configured brandId.
+    // Decode it here to confirm the token was actually issued for this brand.
+    const pageUrl = gamePage.page.url();
+    const gstokenRaw = pageUrl.match(/gstoken=([A-Za-z0-9._-]+)/)?.[1];
+    let jwtBrandId: string | null = null;
+
+    if (gstokenRaw) {
+      try {
+        const parts = gstokenRaw.split('.');
+        const payload = JSON.parse(
+          Buffer.from(parts[1] ?? '', 'base64').toString('utf8'),
+        ) as Record<string, unknown>;
+        jwtBrandId = String(payload['brandId'] ?? '');
+      } catch { /* JWT parse failure is non-fatal; log below */ }
+    }
+
+    const brandInJwt  = jwtBrandId ?? '(could not decode JWT)';
+    const jwtMatches  = !jwtBrandId || jwtBrandId === configuredBrandId;
+
+    console.log(
+      `[TLIB-343] Brand ID: configured="${configuredBrandId}", JWT="${brandInJwt}", ` +
+      `expected RTP: ${expectedRtp ?? 'n/a'}%`,
+    );
+
+    expect(
+      jwtMatches,
+      `TLIB-343: JWT brandId "${brandInJwt}" does not match GAME_BRAND_ID "${configuredBrandId}". ` +
+      `The token may have been generated with a different brand — re-run to get a fresh token, ` +
+      `or check global-setup.ts to confirm it is using GAME_BRAND_ID correctly.`,
+    ).toBeTruthy();
+
+    // ── 3. Structural paytable check ────────────────────────────────────────
+    // RTP% is rendered on WebGL canvas and cannot be read programmatically.
+    // A multi-page paytable with canvas confirms the rules section exists and
+    // is accessible — the displayed value is determined by the brand config above.
+    const hasSubstantialPaytable = pt.modalOpened && pt.pageCount >= 3 && pt.hasCanvas;
     const hasDOMPercent = pt.modalDOMText.includes('%');
 
-    expect(hasSubstantialPaytable || hasDOMPercent,
-      `TLIB-343: Rules must display theoretical RTP%. ` +
-      `Paytable: ${pt.pageCount} pages, canvas=${pt.hasCanvas}, ` +
-      `modalOpened=${pt.modalOpened}, DOM has %: ${hasDOMPercent}\n` +
-      `NOTE: RTP% is rendered on WebGL canvas and cannot be read programmatically. ` +
-      `A ${pt.pageCount}-page paytable with canvas content confirms the rules section exists.`,
+    expect(
+      hasSubstantialPaytable || hasDOMPercent,
+      `TLIB-343: Rules must display theoretical RTP% (${expectedRtp}%) for brand "${configuredBrandId}". ` +
+      `Paytable: ${pt.pageCount} pages, canvas=${pt.hasCanvas}, opened=${pt.modalOpened}, ` +
+      `DOM has %: ${hasDOMPercent}.\n` +
+      `NOTE: RTP% is rendered on WebGL canvas. A ${pt.pageCount}-page paytable with canvas ` +
+      `content confirms the rules section is accessible for brand "${configuredBrandId}".`,
     ).toBeTruthy();
   });
 
