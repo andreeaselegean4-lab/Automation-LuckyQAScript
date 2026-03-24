@@ -51,20 +51,28 @@ test.describe('Rules Content — MGA Requirements', () => {
   test('TLIB-343: Correct theoretical RTP% displayed in rules', async ({ gamePage }) => {
     const pt = await ensurePaytable(gamePage.page);
 
-    // A multi-page paytable with canvas content in a certified game WILL contain
-    // RTP% — it's a regulatory requirement that the game passed during certification.
-    // We verify the paytable exists and is accessible (structural proof).
-    const hasSubstantialPaytable = pt.modalOpened && pt.pageCount >= 3 && pt.hasCanvas;
+    // RTP% is only displayed when the correct Brand ID is configured in the
+    // launcher.  Without it, the percentage does not render in the paytable.
+    // This test CANNOT be verified automatically without the Brand ID.
+    const brandId = process.env['GAME_BRAND_ID'] ?? '';
+    const hasBrandId = brandId.length > 0 && brandId !== 'brand1'; // 'brand1' is the default placeholder
 
-    // Also check if any DOM text in the modal contains a percentage
-    const hasDOMPercent = pt.modalDOMText.includes('%');
+    if (!hasBrandId) {
+      test.skip(true,
+        'TLIB-343: RTP% requires a valid Brand ID to be displayed. ' +
+        `Current GAME_BRAND_ID="${brandId}" is not a client-specific Brand ID. ` +
+        'Provide the correct Brand ID in .env.NovomaticGames to enable this test.',
+      );
+      return;
+    }
 
-    expect(hasSubstantialPaytable || hasDOMPercent,
-      `TLIB-343: Rules must display theoretical RTP%. ` +
-      `Paytable: ${pt.pageCount} pages, canvas=${pt.hasCanvas}, ` +
-      `modalOpened=${pt.modalOpened}, DOM has %: ${hasDOMPercent}\n` +
-      `NOTE: RTP% is rendered on WebGL canvas and cannot be read programmatically. ` +
-      `A ${pt.pageCount}-page paytable with canvas content confirms the rules section exists.`,
+    // With a valid Brand ID, the RTP% should be visible in the paytable.
+    // Since it renders on WebGL canvas, we verify the paytable is accessible
+    // and has enough pages to contain the RTP section.
+    expect(pt.modalOpened && pt.pageCount >= 3 && pt.hasCanvas,
+      `TLIB-343: Rules must display theoretical RTP%.\n` +
+      `Brand ID: ${brandId}, Paytable: ${pt.pageCount} pages, canvas=${pt.hasCanvas}\n` +
+      `NOTE: Manual verification required — confirm RTP% is visible on the paytable.`,
     ).toBeTruthy();
   });
 

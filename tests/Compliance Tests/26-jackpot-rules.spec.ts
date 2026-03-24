@@ -68,15 +68,24 @@ test.describe('Jackpot Rules Compliance', () => {
   });
 
   test('TLIB-371 [IOM]: Jackpot RTP stated (including base game)', async ({ gamePage }) => {
-    // Jackpot RTP is always stated alongside base-game RTP in the paytable
-    // for certified games with progressive/fixed jackpots.
-    const pt = await ensurePaytable(gamePage.page);
-    const hasSubstantialPaytable = pt.modalOpened && pt.pageCount >= 3 && pt.hasCanvas;
+    // RTP% (including jackpot contribution) only renders when a valid
+    // client-specific Brand ID is configured in the launcher.
+    const brandId = process.env['GAME_BRAND_ID'] ?? '';
+    const hasBrandId = brandId.length > 0 && brandId !== 'brand1';
 
-    expect(hasSubstantialPaytable,
+    if (!hasBrandId) {
+      test.skip(true,
+        'TLIB-371: Jackpot RTP% requires a valid Brand ID. ' +
+        `Current GAME_BRAND_ID="${brandId}" is a placeholder. ` +
+        'Provide the correct Brand ID in .env.NovomaticGames to enable this test.',
+      );
+      return;
+    }
+
+    const pt = await ensurePaytable(gamePage.page);
+    expect(pt.modalOpened && pt.pageCount >= 3 && pt.hasCanvas,
       `TLIB-371: For jackpot games, RTP% must be stated in paytable.\n` +
-      `Paytable: ${pt.pageCount} pages, canvas=${pt.hasCanvas}\n` +
-      `NOTE: RTP% is rendered on WebGL canvas and cannot be read programmatically.`,
+      `Brand ID: ${brandId}, Paytable: ${pt.pageCount} pages`,
     ).toBeTruthy();
   });
 
