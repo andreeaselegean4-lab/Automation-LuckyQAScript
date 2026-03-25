@@ -81,7 +81,8 @@ test.describe('Plain Language & Prize Disclosure', () => {
   test('Coin/special symbol prize range disclosed (if applicable)', async ({ gamePage }) => {
     // Check if game has coin/collect mechanics (from constants)
     const hasCoinSymbol = Object.values(SYMBOLS).some(
-      name => name === 'COIN' || name === 'STICKY',
+      name => name === 'COIN' || name === 'STICKY' ||
+              name === 'MYSTERY_COIN' || name === 'MEGA_COIN',
     );
 
     if (!hasCoinSymbol) {
@@ -92,13 +93,17 @@ test.describe('Plain Language & Prize Disclosure', () => {
     const pt = await ensurePaytable(gamePage.page);
 
     // Coin prize ranges are documented in the paytable for games with
-    // Hold & Win mechanics.  The game has MINI/MINOR/MAJOR/GRAND tiers.
+    // coin-based mechanics (Hold & Win, Mystery Coin, Mega Coin, etc.)
     const jackpotCount = Object.keys(JACKPOTS).length;
+    const coinSymbols = Object.values(SYMBOLS).filter(
+      name => name === 'COIN' || name === 'STICKY' ||
+              name === 'MYSTERY_COIN' || name === 'MEGA_COIN',
+    );
     const hasPaytable  = pt.modalOpened && pt.pageCount >= 3;
 
     expect(hasPaytable,
       `Coin/collect prize range must be disclosed.\n` +
-      `Game has ${jackpotCount} jackpot tiers and COIN/STICKY symbols.\n` +
+      `Game has ${jackpotCount} jackpot tiers and coin symbols: ${coinSymbols.join(', ')}.\n` +
       `Paytable: ${pt.pageCount} pages`,
     ).toBeTruthy();
   });

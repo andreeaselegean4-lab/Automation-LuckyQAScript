@@ -1,19 +1,26 @@
 /**
  * game.constants.ts
  *
- * All game-specific constants for Bonsai Gold 2: Age of Prosperity
+ * All game-specific constants for Coins of Fate
  * Engine: et=ng  |  API: POST /demoplay  |  Grid: 5 reels × 3 rows
  *
  * Sources:
- *   - Live API inspection (network capture of real /demoplay responses)
+ *   - Live paytable inspection (6 pages)
  *   - Live DOM inspection (CSS selectors, UI elements)
+ *
+ * Features:
+ *   - Mystery Coin: flips to reveal a mystery symbol
+ *   - Mega Coin: 3×3 symbol, guarantees wins
+ *   - Statue Feature: awakened statues improve coins for bigger wins
+ *   - Both-ways pay (left-to-right AND right-to-left)
+ *   - NO jackpots, NO free spins, NO WILD, NO SCATTER
  */
 
 // ── Game Identity ─────────────────────────────────────────────────────────────
 
-export const GAME_ID       = 'bonsai-gold-2';
+export const GAME_ID       = 'coins-of-fate';
 export const GAME_BRAND_ID = '95';   // default brand — see RTP_BRAND_MAP below
-export const GAME_NAME     = 'Bonsai Gold 2: Age of Prosperity';
+export const GAME_NAME     = 'Coins of Fate';
 
 // ── RTP Brand Configuration ───────────────────────────────────────────────────
 
@@ -47,29 +54,29 @@ export const ROWS  = 3;
 // ── Symbols ───────────────────────────────────────────────────────────────────
 
 /**
- * Symbol ID → name map.
- * Negative key -11 (STICKY) is valid in JS and returned by Object.keys() as '-11'.
+ * Symbol ID → name map for Coins of Fate.
  *
- * From ResponseAdapter.js:
- *   WILD    = 9
- *   COIN    = 10   (CHEST that triggers Hold & Win)
- *   STICKY  = -11  (locked coin symbol during respins)
- *   SCATTER = 11
+ * 9 regular symbols + 2 special coin symbols:
+ *   CLEOPATRA (highest), HORUS, SCARAB, ANKH — themed symbols
+ *   A, K, Q, J, TEN — card symbols (lowest)
+ *   MYSTERY_COIN — flips to reveal a mystery symbol
+ *   MEGA_COIN — 3×3 oversized coin, guarantees wins
+ *
+ * No WILD, no SCATTER in this game.
  */
 export const SYMBOLS: Record<number, string> = {
-  0:   'BLANK',
-  1:   'SYMBOL_1',
-  2:   'SYMBOL_2',
-  3:   'SYMBOL_3',
-  4:   'SYMBOL_4',
-  5:   'SYMBOL_5',
-  6:   'SYMBOL_6',
-  7:   'SYMBOL_7',
-  8:   'SYMBOL_8',
-  9:   'WILD',
-  10:  'COIN',
-  11:  'SCATTER',
-  [-11]: 'STICKY',
+  0:  'BLANK',
+  1:  'CLEOPATRA',
+  2:  'HORUS',
+  3:  'SCARAB',
+  4:  'ANKH',
+  5:  'A',
+  6:  'K',
+  7:  'Q',
+  8:  'J',
+  9:  'TEN',
+  10: 'MYSTERY_COIN',
+  11: 'MEGA_COIN',
 };
 
 /** All valid symbol IDs as a Set for fast membership checks */
@@ -78,91 +85,83 @@ export const VALID_SYMBOL_IDS = new Set(Object.keys(SYMBOLS).map(Number));
 // ── Paylines ──────────────────────────────────────────────────────────────────
 
 /**
- * Standard paylines for the 5×3 grid.
+ * 10 paylines for the 5×3 grid (both-ways pay).
  * Each entry is an array of row indices (0=top, 1=mid, 2=bottom), one per reel.
- * win.line in API responses uses the same format.
  */
 export const PAYLINES: readonly number[][] = [
-  [1, 1, 1, 1, 1], // L1 — middle row
-  [0, 0, 0, 0, 0], // L2 — top row
-  [2, 2, 2, 2, 2], // L3 — bottom row
-  [0, 1, 2, 1, 0], // L4 — V-shape down
-  [2, 1, 0, 1, 2], // L5 — V-shape up
-  [0, 0, 1, 2, 2], // L6 — diagonal down-right
-  [2, 2, 1, 0, 0], // L7 — diagonal up-right
-  [0, 1, 1, 1, 0], // L8 — zigzag low
-  [2, 1, 1, 1, 2], // L9 — zigzag high
-  [1, 0, 1, 2, 1], // L10
-  [1, 2, 1, 0, 1], // L11
-  [0, 1, 0, 1, 0], // L12
-  [2, 1, 2, 1, 2], // L13
-  [1, 0, 0, 0, 1], // L14
-  [1, 2, 2, 2, 1], // L15
-  [0, 0, 1, 0, 0], // L16
-  [2, 2, 1, 2, 2], // L17
-  [0, 1, 2, 2, 2], // L18
-  [2, 1, 0, 0, 0], // L19
-  [1, 1, 0, 1, 1], // L20
+  [1, 1, 1, 1, 1], // L1  — middle row
+  [0, 0, 0, 0, 0], // L2  — top row
+  [2, 2, 2, 2, 2], // L3  — bottom row
+  [0, 1, 2, 1, 0], // L4  — V-shape down
+  [2, 1, 0, 1, 2], // L5  — V-shape up
+  [0, 0, 1, 2, 2], // L6  — diagonal down-right
+  [2, 2, 1, 0, 0], // L7  — diagonal up-right
+  [0, 1, 1, 1, 0], // L8  — zigzag low
+  [2, 1, 1, 1, 2], // L9  — zigzag high
+  [1, 0, 1, 2, 1], // L10 — wave
 ];
 
 // ── Hold & Win (Coin Game) ────────────────────────────────────────────────────
 
 /**
- * The COIN/CHEST symbol that fills the grid in the base game.
- * 6+ of these on the grid triggers the Hold & Win bonus.
- * From ResponseAdapter.js: COIN = 10
+ * Mystery Coin symbol — triggers the coin feature.
  */
 export const COLLECTOR_COIN = 10;
 
 /**
- * Symbol IDs that represent prize coins in the Hold & Win game.
- * These are the same as COIN (10) — jackpot is determined by server value.
+ * Symbol IDs that represent prize coins.
+ * MYSTERY_COIN (10) and MEGA_COIN (11).
  */
-export const PRIZE_COIN_LIST: readonly number[] = [10];
+export const PRIZE_COIN_LIST: readonly number[] = [10, 11];
 
 /**
- * Number of coin symbols needed to unlock each jackpot tier.
- * [0-coin baseline, 1-coin entry, 15-coin MINI, 30-coin MAJOR, 50-coin GRAND]
+ * Collection thresholds (if applicable).
+ * Coins of Fate uses statue-based progression, not tier thresholds.
  */
-export const COLLECTION_THRESHOLDS: readonly number[] = [0, 1, 15, 30, 50];
+export const COLLECTION_THRESHOLDS: readonly number[] = [];
 
 // ── Jackpots ──────────────────────────────────────────────────────────────────
 
-export const JACKPOTS = {
-  MINI:  { name: 'MINI',  multiplier: 25   },
-  MINOR: { name: 'MINOR', multiplier: 50   },
-  MAJOR: { name: 'MAJOR', multiplier: 250  },
-  GRAND: { name: 'GRAND', multiplier: 5000 },
-} as const;
+/**
+ * Coins of Fate has NO jackpot tiers.
+ * Empty object — jackpot tests will be skipped automatically.
+ */
+export const JACKPOTS: Record<string, { name: string; multiplier: number }> = {};
 
 // ── Free Spins ────────────────────────────────────────────────────────────────
 
-/** Minimum SCATTER symbols to trigger free spins */
-export const FREE_SPINS_TRIGGER_COUNT = 3;
-
-/** Free spin awards for 3 / 4 / 5 scatters */
-export const FREE_SPINS_AWARDS: readonly number[] = [10, 12, 15];
+/**
+ * Coins of Fate has NO free spins mechanic.
+ */
+export const FREE_SPINS_TRIGGER_COUNT = 0;
+export const FREE_SPINS_AWARDS: readonly number[] = [];
 
 // ── Turbo / FastPlay ──────────────────────────────────────────────────────────
 
-/** Animation speed multiplier in turbo mode (from FastPlay.js) */
+/** Animation speed multiplier in turbo mode */
 export const TURBO_TIME_SCALE = 1.5;
 
 // ── Debug Trigger Names ───────────────────────────────────────────────────────
 
 /**
- * Scenario names from stub.js — only available when GAME_URL_DEBUG is used.
- * These map to deterministic RNG seeds that produce specific outcomes.
+ * Scenario names for debug mode.
+ * Game-specific triggers for Coins of Fate + legacy triggers
+ * (kept for backwards compatibility with non-compliance tests).
  */
 export const DEBUG_TRIGGERS = {
+  // Coins of Fate triggers
+  MYSTERY_COIN:          'mystery coin',
+  MEGA_COIN:             'mega coin',
+  STATUE_FEATURE:        'statue feature',
+  REGULAR_WIN:           'regular win',
+  BIG_WIN:               'big win',
+  // Legacy triggers (from other games — kept for compilation)
   COIN_BONUS:            'coin bonus',
   FREE_GAMES:            'free games',
-  REGULAR_WIN:           'regular win',
   GRAND_JACKPOT:         'grand-jackpot',
   MAJOR_JACKPOT:         'major-jackpot',
   MINOR_JACKPOT:         'minor-jackpot',
   MINI_JACKPOT:          'mini-jackpot',
-  BIG_WIN:               'coin bonus with one mini game',
   BONUS_WITH_PAYLINE:    'regular win + coin bonus',
   ALL_JACKPOTS_IN_FREE:  'free games with all wins',
   NEAR_MISS:             'anticipation',

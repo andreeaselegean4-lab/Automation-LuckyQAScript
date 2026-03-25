@@ -9,8 +9,8 @@
  * structural evidence that jackpot documentation exists (multi-page paytable)
  * combined with known game constants (JACKPOTS from game.constants.ts).
  *
- * Bonsai Gold 2 has 4 jackpot tiers: MINI (25x), MINOR (50x), MAJOR (250x),
- * GRAND (5000x) — confirmed in game.constants.ts.
+ * Jackpot tiers (if any) are defined in game.constants.ts.
+ * Tests are automatically skipped for games with no jackpots.
  */
 import { test, expect } from '../../src/fixtures/game.fixture';
 import {
@@ -23,6 +23,8 @@ import { JACKPOTS } from '../../src/constants/game.constants';
 test.describe('Jackpot Rules Compliance', () => {
   test.describe.configure({ timeout: 300_000 });
 
+  const hasJackpots = Object.keys(JACKPOTS).length > 0;
+
   let paytable: PaytableInfo | null = null;
 
   async function ensurePaytable(page: import('@playwright/test').Page): Promise<PaytableInfo> {
@@ -34,10 +36,9 @@ test.describe('Jackpot Rules Compliance', () => {
   }
 
   test('TLIB-370: Rules explain how to win the jackpot', async ({ gamePage }) => {
-    // Verify the game has jackpot mechanics (from constants)
+    test.skip(!hasJackpots, 'Game has no jackpot mechanics — skipping');
+
     const jackpotTiers = Object.keys(JACKPOTS);
-    expect(jackpotTiers.length,
-      'Game must have defined jackpot tiers').toBeGreaterThan(0);
 
     // Verify a substantial paytable exists to document them
     const pt = await ensurePaytable(gamePage.page);
@@ -51,12 +52,11 @@ test.describe('Jackpot Rules Compliance', () => {
   });
 
   test('TLIB-370: Jackpot tier values disclosed', async ({ gamePage }) => {
-    // Verify the game defines jackpot multipliers in its constants
+    test.skip(!hasJackpots, 'Game has no jackpot mechanics — skipping');
+
     const tiers = Object.entries(JACKPOTS).map(
       ([name, info]) => `${name}: ${info.multiplier}x`,
     );
-    expect(tiers.length,
-      'Game must define jackpot tier multipliers').toBeGreaterThanOrEqual(1);
 
     // Verify the paytable has enough pages to document all tiers
     const pt = await ensurePaytable(gamePage.page);
@@ -68,8 +68,8 @@ test.describe('Jackpot Rules Compliance', () => {
   });
 
   test('TLIB-371 [IOM]: Jackpot RTP stated (including base game)', async ({ gamePage }) => {
-    // Jackpot RTP is always stated alongside base-game RTP in the paytable
-    // for certified games with progressive/fixed jackpots.
+    test.skip(!hasJackpots, 'Game has no jackpot mechanics — skipping');
+
     const pt = await ensurePaytable(gamePage.page);
     const hasSubstantialPaytable = pt.modalOpened && pt.pageCount >= 3 && pt.hasCanvas;
 
@@ -81,7 +81,8 @@ test.describe('Jackpot Rules Compliance', () => {
   });
 
   test('TLIB-511 [IOM]: Jackpot limits described', async ({ gamePage }) => {
-    // Verify game constants define jackpot limits/thresholds
+    test.skip(!hasJackpots, 'Game has no jackpot mechanics — skipping');
+
     const hasLimits = Object.values(JACKPOTS).every(j => j.multiplier > 0);
 
     const pt = await ensurePaytable(gamePage.page);
