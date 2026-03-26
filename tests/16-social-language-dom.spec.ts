@@ -214,9 +214,9 @@ function formatViolations(violations: ViolationReport[]): string {
 
 for (const locale of SOCIAL_LOCALES) {
 
-  test.describe(`${LOCALE_LABELS[locale]} (${locale}) — DOM Hardcoded Text Scan`, () => {
+  test.describe(`${LOCALE_LABELS[locale]} (${locale}) — Verify No Hardcoded RMG Terms in Visible DOM Text`, () => {
 
-    test('no forbidden RMG terms in main game UI', async ({ page }) => {
+    test('Verify that no forbidden RMG terms appear in the visible DOM text of the main game UI', async ({ page }) => {
       if (!process.env['USERNAME'] || !process.env['PASSWORD']) {
         test.skip(true, 'USERNAME/PASSWORD not set in .env');
         return;
@@ -243,7 +243,7 @@ for (const locale of SOCIAL_LOCALES) {
       ).toBe(0);
     });
 
-    test('no forbidden RMG terms in menu / paytable panel', async ({ page }) => {
+    test('Verify that no forbidden RMG terms appear in the visible DOM text of the menu and paytable panel', async ({ page }) => {
       if (!process.env['USERNAME'] || !process.env['PASSWORD']) {
         test.skip(true, 'USERNAME/PASSWORD not set in .env');
         return;
@@ -280,9 +280,9 @@ for (const locale of SOCIAL_LOCALES) {
 
 // ── Summary: all locales in one pass ─────────────────────────────────────────
 
-test.describe('Social Language DOM — Full Compliance Summary', () => {
+test.describe('Social Language DOM — Generate Full Hardcoded Text Compliance Summary Report', () => {
 
-  test('scan all social locales and log DOM violation counts', async ({ page }) => {
+  test('Generate a full DOM compliance summary report scanning all social locales for hardcoded RMG term violations', async ({ page }) => {
     if (!process.env['USERNAME'] || !process.env['PASSWORD']) {
       test.skip(true, 'USERNAME/PASSWORD not set in .env');
       return;

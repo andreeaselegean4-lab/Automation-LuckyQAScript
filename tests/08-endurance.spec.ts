@@ -18,12 +18,12 @@ import { test, expect }   from '../src/fixtures/game.fixture';
 const SPIN_COUNT    = parseInt(process.env.ENDURANCE_SPIN_COUNT ?? '200', 10);
 const HEAP_MAX_MB   = 512; // alert if heap exceeds this threshold
 
-test.describe('Endurance', () => {
+test.describe('Endurance — Verify Stability Over Extended Spin Sessions (Memory, Balance, Errors)', () => {
 
   // Long timeout for this suite
   test.setTimeout(30 * 60 * 1_000); // 30 minutes
 
-  test(`${SPIN_COUNT}-spin endurance run — no freezes or errors`, async ({ gamePage, consoleErrors }) => {
+  test(`Verify that ${SPIN_COUNT} consecutive spins complete without JS errors, UI freezes, or heap exceeding ${HEAP_MAX_MB}MB`, async ({ gamePage, consoleErrors }) => {
     // Enable turbo to run faster
     await gamePage.enableTurbo();
 
@@ -66,7 +66,7 @@ test.describe('Endurance', () => {
     await gamePage.disableTurbo();
   });
 
-  test('heap does not grow unboundedly over 100 spins', async ({ gamePage }) => {
+  test('Verify that JS heap memory growth over 100 spins stays below 50% (no memory leak detected)', async ({ gamePage }) => {
     test.setTimeout(10 * 60 * 1_000);
 
     await gamePage.enableTurbo();
@@ -101,7 +101,7 @@ test.describe('Endurance', () => {
     expect(growth).toBeLessThan(1.5);
   });
 
-  test('balance integrity maintained over 100 spins', async ({ gamePage }) => {
+  test('Verify that the displayed balance after 100 spins matches the expected value calculated from API bet/win data', async ({ gamePage }) => {
     test.setTimeout(10 * 60 * 1_000);
 
     await gamePage.enableTurbo();
@@ -131,7 +131,7 @@ test.describe('Endurance', () => {
     expect(drift).toBeLessThan(0.50);
   });
 
-  test('game recovers if spin takes longer than expected', async ({ gamePage }) => {
+  test('Verify that the game recovers to idle state when a spin response is delayed by 2 seconds due to slow network', async ({ gamePage }) => {
     // Simulate a slow network by adding a 2s delay via route interception
     await gamePage.page.route('**/demoplay', async route => {
       await new Promise(resolve => setTimeout(resolve, 2_000));

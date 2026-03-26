@@ -28,7 +28,7 @@ test.describe('Plain Language & Prize Disclosure', () => {
     return paytable;
   }
 
-  test('Paytable uses clear, plain-language labels', async ({ gamePage }) => {
+  test('Verify that the paytable uses clear plain-language symbol labels (not generic SYMBOL_N identifiers)', async ({ gamePage }) => {
     const pt = await ensurePaytable(gamePage.page);
 
     // Game constants define named symbols (WILD, SCATTER, COIN, etc.) —
@@ -48,7 +48,7 @@ test.describe('Plain Language & Prize Disclosure', () => {
     ).toBeTruthy();
   });
 
-  test('Loss conditions explicitly stated', async ({ gamePage }) => {
+  test('Verify that loss conditions are documented in the paytable (requires 4+ pages of rules content)', async ({ gamePage }) => {
     const pt = await ensurePaytable(gamePage.page);
 
     // Loss conditions / malfunction clauses are standard regulatory text
@@ -63,7 +63,7 @@ test.describe('Plain Language & Prize Disclosure', () => {
     ).toBeTruthy();
   });
 
-  test('Ways to win fully covered', async ({ gamePage }) => {
+  test('Verify that all ways to win are documented with defined paylines and a multi-page canvas paytable', async ({ gamePage }) => {
     const pt = await ensurePaytable(gamePage.page);
     const dom = await getDOMComplianceEvidence(gamePage.page);
 
@@ -78,7 +78,7 @@ test.describe('Plain Language & Prize Disclosure', () => {
     ).toBeTruthy();
   });
 
-  test('Coin/special symbol prize range disclosed (if applicable)', async ({ gamePage }) => {
+  test('Verify that coin and special symbol prize ranges are disclosed in the paytable for Hold & Win mechanics', async ({ gamePage }) => {
     // Check if game has coin/collect mechanics (from constants)
     const hasCoinSymbol = Object.values(SYMBOLS).some(
       name => name === 'COIN' || name === 'STICKY' ||
@@ -108,7 +108,7 @@ test.describe('Plain Language & Prize Disclosure', () => {
     ).toBeTruthy();
   });
 
-  test('Malfunction clause present', async ({ gamePage }) => {
+  test('Verify that the mandatory malfunction clause is present in the paytable rules (3+ pages required)', async ({ gamePage }) => {
     const pt = await ensurePaytable(gamePage.page);
 
     // "Malfunction voids all pays and plays" is a mandatory regulatory clause

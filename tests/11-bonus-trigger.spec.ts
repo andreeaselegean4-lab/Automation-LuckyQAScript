@@ -45,19 +45,19 @@ async function navigateDebug(gamePage: import('../src/page-objects/GamePage').Ga
 
 // ── Collection constant tests (no navigation required) ───────────────────────
 
-test.describe('Bonus Constants Validation', () => {
+test.describe('Bonus Constants — Verify Collector Coin, Thresholds, and Jackpot Multiplier Values', () => {
 
-  test('COLLECTOR_COIN constant is 10 (matches ResponseAdapter.ITEMS.COIN)', () => {
+  test('Verify that COLLECTOR_COIN constant equals 10, matching the COIN symbol ID in ResponseAdapter', () => {
     // Sands of Fortune: COIN/CHEST symbol = 10
     // (Thunder Vault uses 9 — different engine, different symbol table)
     expect(COLLECTOR_COIN).toBe(10);
   });
 
-  test('collection thresholds match schema values', () => {
+  test('Verify that COLLECTION_THRESHOLDS array matches the expected schema values [0, 1, 15, 30, 50]', () => {
     expect(COLLECTION_THRESHOLDS).toEqual([0, 1, 15, 30, 50]);
   });
 
-  test('jackpot multipliers match schema', () => {
+  test('Verify that jackpot multipliers match expected values: MINI=25x, MINOR=50x, MAJOR=250x, GRAND=5000x', () => {
     expect(JACKPOTS.MINI.multiplier).toBe(25);
     expect(JACKPOTS.MINOR.multiplier).toBe(50);
     expect(JACKPOTS.MAJOR.multiplier).toBe(250);
@@ -68,11 +68,11 @@ test.describe('Bonus Constants Validation', () => {
 
 // ── Debug-trigger bonus lifecycle tests ──────────────────────────────────────
 
-test.describe('Hold & Win Bonus Lifecycle [debug]', () => {
+test.describe('Hold & Win Bonus Lifecycle — Verify Trigger, Transition, Award, and Return to Idle [debug]', () => {
 
   test.setTimeout(5 * 60 * 1_000);
 
-  test('bonus trigger spin: game does not crash during transition', async ({ gamePage, gameDebugUrl, consoleErrors }) => {
+  test('Verify that triggering the Hold & Win bonus via debug mode does not produce any JavaScript errors during the transition animation', async ({ gamePage, gameDebugUrl, consoleErrors }) => {
     await navigateDebug(gamePage, gameDebugUrl);
 
     const available = await gamePage.debug.isAvailable();
@@ -88,7 +88,7 @@ test.describe('Hold & Win Bonus Lifecycle [debug]', () => {
     expect(consoleErrors).toHaveLength(0);
   });
 
-  test('after bonus resolves game returns to idle state', async ({ gamePage, gameDebugUrl, consoleErrors }) => {
+  test('Verify that after the Hold & Win bonus sequence completes, the game returns to idle with the spin button enabled', async ({ gamePage, gameDebugUrl, consoleErrors }) => {
     await navigateDebug(gamePage, gameDebugUrl);
 
     const available = await gamePage.debug.isAvailable();
@@ -106,7 +106,7 @@ test.describe('Hold & Win Bonus Lifecycle [debug]', () => {
     expect(consoleErrors).toHaveLength(0);
   });
 
-  test('bonus resolves with a positive net award', async ({ gamePage, gameDebugUrl }) => {
+  test('Verify that the Hold & Win bonus sequence awards a positive net win and the balance reflects the correct expected value', async ({ gamePage, gameDebugUrl }) => {
     await navigateDebug(gamePage, gameDebugUrl);
 
     const available = await gamePage.debug.isAvailable();
@@ -140,7 +140,7 @@ test.describe('Hold & Win Bonus Lifecycle [debug]', () => {
     expect(Math.abs(balanceAfter - expectedBalance)).toBeLessThanOrEqual(0.50);
   });
 
-  test('Grand Jackpot bonus sequence completes cleanly', async ({ gamePage, gameDebugUrl, consoleErrors }) => {
+  test('Verify that the Grand Jackpot bonus sequence completes without JavaScript errors and returns to idle state', async ({ gamePage, gameDebugUrl, consoleErrors }) => {
     await navigateDebug(gamePage, gameDebugUrl);
 
     const available = await gamePage.debug.isAvailable();
@@ -162,9 +162,9 @@ test.describe('Hold & Win Bonus Lifecycle [debug]', () => {
 
 // ── Mock-based bonus tests (fallback for builds without stub.js) ──────────────
 
-test.describe('Hold & Win Bonus — Mock Fallback [mock]', () => {
+test.describe('Hold & Win Bonus — Verify Bonus Entry and Recovery Using Mocked Payloads [mock]', () => {
 
-  test('bonus trigger mock: game survives the bonus entry animation', async ({ gamePage, consoleErrors }) => {
+  test('Verify that a mocked bonus trigger payload does not cause JavaScript errors during the bonus entry animation', async ({ gamePage, consoleErrors }) => {
     const bet  = await gamePage.getBet();
     const mock = SpinInterceptor.buildBonusTrigger(bet);
     gamePage.interceptor.queueMockResponse(mock);
@@ -174,7 +174,7 @@ test.describe('Hold & Win Bonus — Mock Fallback [mock]', () => {
     expect(consoleErrors).toHaveLength(0);
   });
 
-  test('after forced bonus trigger, normal spin can follow', async ({ gamePage, consoleErrors }) => {
+  test('Verify that after a mocked bonus trigger, the game can recover and process a normal no-win spin', async ({ gamePage, consoleErrors }) => {
     const bet = await gamePage.getBet();
 
     gamePage.interceptor.queueMockResponse(SpinInterceptor.buildBonusTrigger(bet));

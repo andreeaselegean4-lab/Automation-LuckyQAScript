@@ -27,7 +27,7 @@ import { type SpinRecord, SpinInterceptor } from '../src/utils/spinInterceptor';
 // browser context from the gamePage fixture so there is no shared state risk.
 test.describe.configure({ mode: 'parallel' });
 
-test.describe('Spin Cycle — State Machine & Balance Integrity', () => {
+test.describe('Spin Cycle — Verify Spin State Transitions, API Calls, and Balance Deduction', () => {
 
     // Enable turbo (fast-spin) mode before every test to reduce animation time.
     test.beforeEach(async ({ gamePage }) => {
@@ -36,7 +36,7 @@ test.describe('Spin Cycle — State Machine & Balance Integrity', () => {
 
     // ─── State Machine ────────────────────────────────────────────────────────────
 
-    test('spin button transitions disabled then enabled', async ({ gamePage }) => {
+    test('Verify that the spin button becomes disabled during a spin and re-enables after spin completes', async ({ gamePage }) => {
         // Queue a no-win mock so we don't accidentally trigger a bonus game
         const totalBet = await gamePage.getBet();
         gamePage.interceptor.mockNextSpin('no-win', totalBet);
@@ -55,7 +55,7 @@ test.describe('Spin Cycle — State Machine & Balance Integrity', () => {
         expect(enabledAfter).toBe(true);
     });
 
-    test('all controls lock during spin', async ({ gamePage }) => {
+    test('Verify that all game controls (bet, autoplay, menu) are disabled while a spin is in progress', async ({ gamePage }) => {
         // Queue a no-win mock to prevent bonus triggers
         const totalBet = await gamePage.getBet();
         gamePage.interceptor.mockNextSpin('no-win', totalBet);
@@ -68,7 +68,7 @@ test.describe('Spin Cycle — State Machine & Balance Integrity', () => {
         await gamePage.waitForSpinComplete();
     });
 
-    test('all controls are re-enabled after spin completes', async ({ gamePage }) => {
+    test('Verify that all game controls are re-enabled after a spin completes and the game returns to idle', async ({ gamePage }) => {
         const totalBet = await gamePage.getBet();
         gamePage.interceptor.mockNextSpin('no-win', totalBet);
 
@@ -79,14 +79,14 @@ test.describe('Spin Cycle — State Machine & Balance Integrity', () => {
 
     // ─── API Integrity ────────────────────────────────────────────────────────────
 
-    test('API call is made on each spin', async ({ gamePage }) => {
+    test('Verify that each spin triggers exactly one API call to the spin endpoint', async ({ gamePage }) => {
         await gamePage.spinAndWait();
         const history = gamePage.interceptor.history;
         expect(history.length).toBeGreaterThanOrEqual(1);
         expect(history[history.length - 1].url).toContain(SPIN_API_PATH);
     });
 
-    test('API response has required fields', async ({ gamePage }) => {
+    test('Verify that the spin API response contains payload, display, and valid bet fields', async ({ gamePage }) => {
         await gamePage.spinAndWait();
         const spin = gamePage.interceptor.getLastSpin();
         expect(spin).not.toBeNull();
@@ -98,7 +98,7 @@ test.describe('Spin Cycle — State Machine & Balance Integrity', () => {
 
     // ─── Balance Integrity ────────────────────────────────────────────────────────
 
-    test('balance decreases by bet amount when no win', async ({ gamePage }) => {
+    test('Verify that the balance decreases by exactly the bet amount on a no-win spin', async ({ gamePage }) => {
         // Read the current bet, then queue a guaranteed no-win so this test always
         // resolves in ONE spin instead of retrying up to 10 times against the live API.
         const totalBet = await gamePage.getBet();
@@ -116,7 +116,7 @@ test.describe('Spin Cycle — State Machine & Balance Integrity', () => {
         expect(Math.abs((before - after) - betAmt)).toBeLessThanOrEqual(0.02);
     });
 
-    test('winning spin deducts only the bet and shows win in Last Win display', async ({ gamePage }) => {
+    test('Verify that a winning spin deducts the bet, credits the win to balance, and updates the Last Win display', async ({ gamePage }) => {
         // Extended timeout — live-API spins + bonus-game handling can take several minutes
         test.setTimeout(360_000);
         // Spin until a real winning round from the live API — the game engine
@@ -142,7 +142,7 @@ test.describe('Spin Cycle — State Machine & Balance Integrity', () => {
         expect(Math.abs(displayedWin - roundWin)).toBeLessThanOrEqual(0.05);
     });
 
-    test('last win display updates after winning spin', async ({ gamePage }) => {
+    test('Verify that the Last Win display shows the correct win amount matching the API response after a winning spin', async ({ gamePage }) => {
         // Extended timeout — live-API spins + bonus-game handling can take several minutes
         test.setTimeout(360_000);
         // Spin until a real winning round from the live API.
@@ -161,7 +161,7 @@ test.describe('Spin Cycle — State Machine & Balance Integrity', () => {
 
     // ─── Edge Cases ───────────────────────────────────────────────────────────────
 
-    test('double-click does not trigger second spin', async ({ gamePage }) => {
+    test('Verify that double-clicking the spin button triggers only one API call, not two', async ({ gamePage }) => {
         await gamePage.waitForIdle();
         const totalBet = await gamePage.getBet();
         gamePage.interceptor.mockNextSpin('no-win', totalBet);
@@ -180,7 +180,7 @@ test.describe('Spin Cycle — State Machine & Balance Integrity', () => {
         expect(countAfter - countBefore).toBe(1);
     });
 
-    test('three consecutive spins complete without error', async ({ gamePage, consoleErrors }) => {
+    test('Verify that three consecutive spins complete without JS errors and the spin button returns to enabled state', async ({ gamePage, consoleErrors }) => {
         // Mock all 3 spins with no-win to prevent bonus triggers
         const totalBet = await gamePage.getBet();
         gamePage.interceptor.queueMockResponses([

@@ -25,18 +25,18 @@ import { TURBO_TIME_SCALE } from '../src/constants/game.constants';
 
 test.describe.configure({ mode: 'parallel' });
 
-test.describe('Turbo Mode', () => {
+test.describe('Turbo Mode — Verify Fast-Play Toggle, Spin Behaviour, and State Persistence', () => {
 
     // ─── Toggle UI ────────────────────────────────────────────────────────────────
 
-    test('turbo button is present and clickable', async ({ gamePage }) => {
+    test('Verify that the turbo toggle button is visible and defaults to regular speed mode', async ({ gamePage }) => {
         await expect(gamePage.turboButton).toBeVisible();
         await gamePage.disableTurbo();
         const cls = (await gamePage.turboButton.getAttribute('class')) ?? '';
         expect(cls).toMatch(/play-button--regular/);
     });
 
-    test('enabling turbo changes the button class', async ({ gamePage }) => {
+    test('Verify that enabling turbo mode changes the button class to play-button--fast', async ({ gamePage }) => {
         await gamePage.disableTurbo();
         await gamePage.enableTurbo();
         const cls = (await gamePage.turboButton.getAttribute('class')) ?? '';
@@ -44,14 +44,14 @@ test.describe('Turbo Mode', () => {
         expect(cls).toMatch(/play-button--fast/);
     });
 
-    test('disabling turbo reverts the button class', async ({ gamePage }) => {
+    test('Verify that disabling turbo mode reverts the button class back to play-button--regular', async ({ gamePage }) => {
         await gamePage.enableTurbo();
         await gamePage.disableTurbo();
         const cls = (await gamePage.turboButton.getAttribute('class')) ?? '';
         expect(cls).toMatch(/play-button--regular/);
     });
 
-    test('turbo can be toggled multiple times without breaking', async ({ gamePage }) => {
+    test('Verify that toggling turbo on and off multiple times does not break the button state or game idle state', async ({ gamePage }) => {
         // Rapidly cycling the toggle should not leave the button in a broken state
         // or corrupt any game state — this catches regressions where the toggle
         // mis-counts clicks and gets stuck in the wrong mode.
@@ -69,7 +69,7 @@ test.describe('Turbo Mode', () => {
         expect(enabled).toBe(true);
     });
 
-    test('bet amount is unchanged after enabling turbo', async ({ gamePage }) => {
+    test('Verify that enabling turbo mode does not alter the current bet value', async ({ gamePage }) => {
         // Turbo only affects animation speed — it must not alter the bet level
         const betBefore = await gamePage.getBet();
         await gamePage.enableTurbo();
@@ -80,7 +80,7 @@ test.describe('Turbo Mode', () => {
 
     // ─── Spin Behaviour ───────────────────────────────────────────────────────────
 
-    test('only one API call fires per spin in turbo mode', async ({ gamePage }) => {
+    test('Verify that turbo mode does not cause double-firing of the spin API — exactly one call per spin', async ({ gamePage }) => {
         // Turbo mode should not cause double-firing of the spin API
         const bet = await gamePage.getBet();
         await gamePage.enableTurbo();
@@ -94,7 +94,7 @@ test.describe('Turbo Mode', () => {
         await gamePage.disableTurbo();
     });
 
-    test('spin API is called correctly in turbo mode', async ({ gamePage }) => {
+    test('Verify that the spin API request and response are valid and contain correct bet data in turbo mode', async ({ gamePage }) => {
         // Turbo must not suppress or corrupt the spin API request
         const bet = await gamePage.getBet();
         await gamePage.enableTurbo();
@@ -113,7 +113,7 @@ test.describe('Turbo Mode', () => {
 
     // ─── Balance & State ──────────────────────────────────────────────────────────
 
-    test('balance arithmetic is correct in turbo mode', async ({ gamePage }) => {
+    test('Verify that the balance deduction on a no-win spin matches the bet amount in turbo mode', async ({ gamePage }) => {
         const bet = await gamePage.getBet();
         await gamePage.enableTurbo();
         // Mock a no-win so expected delta is exactly the bet (demo mode never credits wins)
@@ -130,7 +130,7 @@ test.describe('Turbo Mode', () => {
         await gamePage.disableTurbo();
     });
 
-    test('turbo mode persists across consecutive spins', async ({ gamePage }) => {
+    test('Verify that turbo mode stays active (button class remains play-button--fast) across three consecutive spins', async ({ gamePage }) => {
         const bet = await gamePage.getBet();
         await gamePage.enableTurbo();
 
@@ -147,7 +147,7 @@ test.describe('Turbo Mode', () => {
         await gamePage.disableTurbo();
     });
 
-    test('no console errors in turbo mode', async ({ gamePage, consoleErrors }) => {
+    test('Verify that no JavaScript console errors occur during three consecutive spins in turbo mode', async ({ gamePage, consoleErrors }) => {
         const bet = await gamePage.getBet();
         await gamePage.enableTurbo();
 
@@ -162,7 +162,7 @@ test.describe('Turbo Mode', () => {
 
     // ─── Constants ────────────────────────────────────────────────────────────────
 
-    test(`turbo time scale constant is ${TURBO_TIME_SCALE}`, async () => {
+    test(`Verify that TURBO_TIME_SCALE constant equals ${TURBO_TIME_SCALE} (matching FastPlay.js source)`, async () => {
         // Verify the constant in our codebase matches what the source reveals.
         // No gamePage needed — this is a pure value assertion.
         expect(TURBO_TIME_SCALE).toBe(1.5);

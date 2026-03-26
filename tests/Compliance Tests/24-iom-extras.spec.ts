@@ -33,13 +33,13 @@ test.describe('IOM-Specific Compliance', () => {
     return paytable;
   }
 
-  test('TLIB-71 [IOM]: Game name visible at all times', async ({ gamePage }) => {
+  test('TLIB-71 [IOM]: Verify that the game name is visible via the page title at all times', async ({ gamePage }) => {
     const title = await gamePage.page.title();
     expect(title.length,
       'TLIB-71: Game name must be visible (page title)').toBeGreaterThan(0);
   });
 
-  test('TLIB-344 [IOM]: Max win multiplier displayed in rules', async ({ gamePage }) => {
+  test('TLIB-344 [IOM]: Verify that the rules paytable (3+ pages with canvas) contains max win multiplier documentation', async ({ gamePage }) => {
     const pt = await ensurePaytable(gamePage.page);
 
     // A multi-page paytable (≥3 pages) in a certified slot game will contain
@@ -54,7 +54,7 @@ test.describe('IOM-Specific Compliance', () => {
     ).toBeTruthy();
   });
 
-  test('TLIB-346 [IOM]: Payout direction/pattern illustrated', async ({ gamePage }) => {
+  test('TLIB-346 [IOM]: Verify that the rules paytable illustrates payout direction and patterns via canvas content', async ({ gamePage }) => {
     const pt = await ensurePaytable(gamePage.page);
 
     // Payout direction (e.g., "left to right") is always documented in the
@@ -68,7 +68,7 @@ test.describe('IOM-Specific Compliance', () => {
     ).toBeTruthy();
   });
 
-  test('TLIB-347 [IOM]: How bet is placed explained', async ({ gamePage }) => {
+  test('TLIB-347 [IOM]: Verify that bet placement is documented in the paytable and bet controls are visible in the UI', async ({ gamePage }) => {
     const pt = await ensurePaytable(gamePage.page);
     const dom = await getDOMComplianceEvidence(gamePage.page);
 
@@ -84,7 +84,7 @@ test.describe('IOM-Specific Compliance', () => {
     ).toBeTruthy();
   });
 
-  test('TLIB-334 [IOM]: Time-critical events explained', async ({ gamePage }) => {
+  test('TLIB-334 [IOM]: Verify that the paytable (3+ pages) contains documentation for time-critical events (disconnect, malfunction)', async ({ gamePage }) => {
     const pt = await ensurePaytable(gamePage.page);
 
     // Time-critical events (disconnect, malfunction, timeout) are standard
@@ -99,7 +99,7 @@ test.describe('IOM-Specific Compliance', () => {
     ).toBeTruthy();
   });
 
-  test('TLIB-56 [IOM]: Outcome independent of device (server-side RNG)', async ({ gamePage }) => {
+  test('TLIB-56 [IOM]: Verify that spin outcomes are determined server-side by checking that API calls are made for each spin', async ({ gamePage }) => {
     const apiCalls: string[] = [];
     gamePage.page.on('request', (req: any) => {
       const url = req.url();

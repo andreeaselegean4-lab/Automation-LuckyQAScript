@@ -144,9 +144,9 @@ function formatOcrViolations(violations: OcrViolation[]): string {
 
 for (const locale of SOCIAL_LOCALES) {
 
-  test.describe(`${LOCALE_LABELS[locale]} (${locale}) — Paytable OCR Scan`, () => {
+  test.describe(`${LOCALE_LABELS[locale]} (${locale}) — Verify No RMG Terms in WebGL Paytable via OCR Scan`, () => {
 
-    test('no forbidden RMG terms in paytable canvas text', async ({ page }, testInfo) => {
+    test('Verify via OCR that no forbidden RMG terms appear in the WebGL-rendered paytable canvas text', async ({ page }, testInfo) => {
       test.setTimeout(180_000);
       if (!process.env['USERNAME'] || !process.env['PASSWORD']) {
         test.skip(true, 'USERNAME/PASSWORD not set in .env');
@@ -222,9 +222,9 @@ for (const locale of SOCIAL_LOCALES) {
 
 // ── Summary ───────────────────────────────────────────────────────────────────
 
-test.describe('Social Language Paytable OCR — Full Compliance Summary', () => {
+test.describe('Social Language OCR — Generate Full Paytable OCR Compliance Summary Report', () => {
 
-  test('scan all social locales and log paytable OCR violation counts', async ({ page }, testInfo) => {
+  test('Generate a full OCR compliance summary report scanning all social locale paytables for RMG term violations', async ({ page }, testInfo) => {
     test.setTimeout(360_000);
     if (!process.env['USERNAME'] || !process.env['PASSWORD']) {
       test.skip(true, 'USERNAME/PASSWORD not set in .env');

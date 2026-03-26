@@ -16,7 +16,7 @@ import {
 test.describe('Rules Accessibility', () => {
   test.describe.configure({ timeout: 180_000 });
 
-  test('TLIB-339: Rules accessible via easy-to-access button', async ({ gamePage }) => {
+  test('TLIB-339: Verify that game rules are accessible via a visible info button that opens the rules modal', async ({ gamePage }) => {
     const page = gamePage.page;
 
     // Verify an info/rules button is visible in the UI
@@ -33,7 +33,7 @@ test.describe('Rules Accessibility', () => {
     await closeInfoPanel(page);
   });
 
-  test('TLIB-340: Rules accessible at all times (before and after spin)', async ({ gamePage }) => {
+  test('TLIB-340: Verify that the rules modal can be opened both before and after performing a spin', async ({ gamePage }) => {
     const page = gamePage.page;
 
     // Before spin — rules should be openable
@@ -53,7 +53,7 @@ test.describe('Rules Accessibility', () => {
     await closeInfoPanel(page);
   });
 
-  test('TLIB-341: Rules accessible without placing a bet', async ({ gamePage }) => {
+  test('TLIB-341: Verify that the rules modal can be opened without placing any bet first', async ({ gamePage }) => {
     const page = gamePage.page;
 
     // Fresh load — no bet placed yet — rules should work

@@ -67,10 +67,10 @@ function formatViolations(violations: ViolationReport[]): string {
 
 // ── Suite: translation file reachability ─────────────────────────────────────
 
-test.describe('Social Locale — CDN File Availability', () => {
+test.describe('Social Language CDN — Verify Translation File Availability for Social Locales', () => {
 
   for (const locale of SOCIAL_LOCALES) {
-    test(`${LOCALE_LABELS[locale]} (${locale}) — translation file exists on CDN`, async ({ page }) => {
+    test(`Verify that the ${LOCALE_LABELS[locale]} (${locale}) translation file is reachable and non-empty on the CDN`, async ({ page }) => {
       await page.goto('about:blank');
       const result = await fetchTranslationFile(page, GAME_ID, locale);
 
@@ -91,9 +91,9 @@ test.describe('Social Locale — CDN File Availability', () => {
 
 // ── Suite: Social English (en_so) ─────────────────────────────────────────────
 
-test.describe('Social English (en_so) — No RMG Terms', () => {
+test.describe('Social English (en_so) — Verify No Forbidden Real Money Gaming Terms in Translations', () => {
 
-  test('translation file is parseable and has content', async ({ page }) => {
+  test('Verify that the translation file can be parsed into a key-value map with at least 4 translation keys', async ({ page }) => {
     await page.goto('about:blank');
     const result = await fetchTranslationFile(page, GAME_ID, 'en_so');
 
@@ -110,7 +110,7 @@ test.describe('Social English (en_so) — No RMG Terms', () => {
     expect(keyCount, 'Expected at least 4 translation keys').toBeGreaterThanOrEqual(4);
   });
 
-  test('no forbidden RMG terms in any translation value', async ({ page }) => {
+  test('Verify that no forbidden Real Money Gaming terms appear in any translation string value', async ({ page }) => {
     await page.goto('about:blank');
     const result = await fetchTranslationFile(page, GAME_ID, 'en_so');
 
@@ -150,7 +150,7 @@ test.describe('Social English (en_so) — No RMG Terms', () => {
     ).toBe(0);
   });
 
-  test('specific high-risk keys do not use "bet", "pay", "cash", "buy"', async ({ page }) => {
+  test('Verify that no high-risk RMG terms (bet, pay, cash, buy, gamble, payout) appear in English social translation values', async ({ page }) => {
     await page.goto('about:blank');
     const result = await fetchTranslationFile(page, GAME_ID, 'en_so');
 
@@ -186,9 +186,9 @@ test.describe('Social English (en_so) — No RMG Terms', () => {
 
 // ── Suite: Social Spanish (es_so) ─────────────────────────────────────────────
 
-test.describe('Social Spanish (es_so) — No RMG Terms', () => {
+test.describe('Social Spanish (es_so) — Verify No Forbidden Real Money Gaming Terms in Translations', () => {
 
-  test('translation file is parseable and has content', async ({ page }) => {
+  test('Verify that the translation file can be parsed into a key-value map with at least 4 translation keys', async ({ page }) => {
     await page.goto('about:blank');
     const result = await fetchTranslationFile(page, GAME_ID, 'es_so');
 
@@ -205,7 +205,7 @@ test.describe('Social Spanish (es_so) — No RMG Terms', () => {
     expect(keyCount, 'Expected at least 4 translation keys').toBeGreaterThanOrEqual(4);
   });
 
-  test('no forbidden RMG terms in any translation value', async ({ page }) => {
+  test('Verify that no forbidden Real Money Gaming terms appear in any translation string value', async ({ page }) => {
     await page.goto('about:blank');
     const result = await fetchTranslationFile(page, GAME_ID, 'es_so');
 
@@ -245,7 +245,7 @@ test.describe('Social Spanish (es_so) — No RMG Terms', () => {
     ).toBe(0);
   });
 
-  test('specific high-risk keys do not use "apuesta", "pago", "comprar", "apostar"', async ({ page }) => {
+  test('Verify that no high-risk RMG terms (apuesta, pago, comprar, apostar) appear in Spanish social translation values', async ({ page }) => {
     await page.goto('about:blank');
     const result = await fetchTranslationFile(page, GAME_ID, 'es_so');
 
@@ -280,9 +280,9 @@ test.describe('Social Spanish (es_so) — No RMG Terms', () => {
 
 // ── Suite: Social German (de_so) ──────────────────────────────────────────────
 
-test.describe('Social German (de_so) — No RMG Terms', () => {
+test.describe('Social German (de_so) — Verify No Forbidden Real Money Gaming Terms in Translations', () => {
 
-  test('translation file is parseable and has content', async ({ page }) => {
+  test('Verify that the translation file can be parsed into a key-value map with at least 4 translation keys', async ({ page }) => {
     await page.goto('about:blank');
     const result = await fetchTranslationFile(page, GAME_ID, 'de_so');
 
@@ -299,7 +299,7 @@ test.describe('Social German (de_so) — No RMG Terms', () => {
     expect(keyCount, 'Expected at least 4 translation keys').toBeGreaterThanOrEqual(4);
   });
 
-  test('no forbidden RMG terms in any translation value', async ({ page }) => {
+  test('Verify that no forbidden Real Money Gaming terms appear in any translation string value', async ({ page }) => {
     await page.goto('about:blank');
     const result = await fetchTranslationFile(page, GAME_ID, 'de_so');
 
@@ -339,7 +339,7 @@ test.describe('Social German (de_so) — No RMG Terms', () => {
     ).toBe(0);
   });
 
-  test('specific high-risk keys do not use "wette", "auszahlung", "kaufen", "bargeld"', async ({ page }) => {
+  test('Verify that no high-risk RMG terms (wette, auszahlung, kaufen, bargeld) appear in German social translation values', async ({ page }) => {
     await page.goto('about:blank');
     const result = await fetchTranslationFile(page, GAME_ID, 'de_so');
 
@@ -374,9 +374,9 @@ test.describe('Social German (de_so) — No RMG Terms', () => {
 
 // ── Suite: Summary report ─────────────────────────────────────────────────────
 
-test.describe('Social Language — Full Compliance Summary', () => {
+test.describe('Social Language — Generate Full Translation Compliance Summary Report', () => {
 
-  test('all social locales: scan and log complete forbidden word counts', async ({ page }) => {
+  test('Generate a full compliance summary report scanning all social locales for forbidden RMG word violations', async ({ page }) => {
     await page.goto('about:blank');
 
     const summary: Record<string, { keys: number; violations: number; details: string[] }> = {};

@@ -16,11 +16,11 @@
  */
 import { test, expect } from '../src/fixtures/game.fixture';
 
-test.describe('Session Persistence', () => {
+test.describe('Session Persistence — Verify Balance, Bet, and Game State Survive Page Reloads', () => {
 
   test.setTimeout(2 * 60 * 1_000);
 
-  test('balance survives a page reload', async ({ gamePage, gameUrl }) => {
+  test('Verify that the player balance is restored to the pre-spin value after a full page reload', async ({ gamePage, gameUrl }) => {
     // Capture balance BEFORE the spin — in demo mode the server restores the
     // session to this pre-spin value on reload (the spin result lives only in
     // client localState which is lost on a hard reload).
@@ -47,7 +47,7 @@ test.describe('Session Persistence', () => {
     expect(Math.abs(balanceAfterReload - balanceBeforeReload)).toBeLessThanOrEqual(0.05);
   });
 
-  test('bet level survives a page reload', async ({ gamePage }) => {
+  test('Verify that a custom bet level set by the player persists after a page reload', async ({ gamePage }) => {
     // Increase bet a few times to move away from default
     await gamePage.increaseBet(3);
     const betBeforeReload = await gamePage.getBet();
@@ -66,7 +66,7 @@ test.describe('Session Persistence', () => {
     expect(betAfterReload).toBe(betBeforeReload);
   });
 
-  test('no JS errors after reload', async ({ gamePage, consoleErrors }) => {
+  test('Verify that no JavaScript errors occur during or after a full page reload', async ({ gamePage, consoleErrors }) => {
     await gamePage.page.reload({ waitUntil: 'domcontentloaded' });
 
     // Re-attach error listener (page.reload creates a new context)
@@ -88,7 +88,7 @@ test.describe('Session Persistence', () => {
     expect(reloadErrors).toHaveLength(0);
   });
 
-  test('spin works normally after reload', async ({ gamePage }) => {
+  test('Verify that a spin completes normally, deducts the bet, and returns to idle after a page reload', async ({ gamePage }) => {
     // Do a spin, reload, then spin again
     await gamePage.spinAndWait();
 
@@ -115,7 +115,7 @@ test.describe('Session Persistence', () => {
     expect(idle).toBe(true);
   });
 
-  test('game returns to base game after reload (not stuck in bonus)', async ({ gamePage }) => {
+  test('Verify that the game loads into base game state (not bonus) with all controls enabled after a reload', async ({ gamePage }) => {
     await gamePage.page.reload({ waitUntil: 'domcontentloaded' });
     await gamePage.page.waitForSelector('.loading-screen.ready', { timeout: 60_000 });
     await gamePage.page.waitForTimeout(1_800);
@@ -134,7 +134,7 @@ test.describe('Session Persistence', () => {
     expect(controlsEnabled).toBe(true);
   });
 
-  test('full navigation (goto) restores session correctly', async ({ gamePage, gameUrl }) => {
+  test('Verify that a full page navigation (goto) restores the session with the correct balance via gstoken', async ({ gamePage, gameUrl }) => {
     await gamePage.spinAndWait();
     const balanceBefore = await gamePage.getBalance();
 
@@ -153,7 +153,7 @@ test.describe('Session Persistence', () => {
     expect(Math.abs(balanceAfterNav - balanceBefore)).toBeLessThanOrEqual(0.05);
   });
 
-  test('three consecutive reloads do not corrupt state', async ({ gamePage }) => {
+  test('Verify that three consecutive page reloads do not corrupt the balance or break the spin functionality', async ({ gamePage }) => {
     await gamePage.spinAndWait();
     const balanceExpected = await gamePage.getBalance();
 

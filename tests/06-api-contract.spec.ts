@@ -20,15 +20,15 @@ import { SpinInterceptor }                                        from '@/utils/
 // Run every test in its own isolated browser context for speed.
 test.describe.configure({ mode: 'parallel' });
 
-test.describe('API Contract', () => {
+test.describe('API Contract — Verify Server Response Schema, Display Matrix, and Win Data Integrity', () => {
 
-  test('spin request returns HTTP 200', async ({ gamePage }) => {
+  test('Verify that the spin API request returns an HTTP 200 status code', async ({ gamePage }) => {
     await gamePage.spinAndWait();
     const spin = gamePage.interceptor.getLastSpin()!;
     expect(spin.status).toBe(200);
   });
 
-  test('response has a top-level payload object', async ({ gamePage }) => {
+  test('Verify that the spin API response contains a top-level payload object', async ({ gamePage }) => {
     await gamePage.spinAndWait();
     const spin = gamePage.interceptor.getLastSpin()!;
     expect(typeof spin.response.payload).toBe('object');
@@ -52,7 +52,7 @@ test.describe('API Contract', () => {
     }
   });
 
-  test('payload.bet.amount and bet.value are positive numbers', async ({ gamePage }) => {
+  test('Verify that payload.bet.amount and payload.bet.value are both positive numbers', async ({ gamePage }) => {
     await gamePage.spinAndWait();
     const { bet } = gamePage.interceptor.getLastSpin()!.response.payload;
     expect(typeof bet.amount).toBe('number');
@@ -61,7 +61,7 @@ test.describe('API Contract', () => {
     expect(bet.value).toBeGreaterThan(0);
   });
 
-  test('payload.wins is an array (empty or containing valid win objects)', async ({ gamePage }) => {
+  test('Verify that payload.wins is an array where each win object has a positive amount, numeric item, and numeric count', async ({ gamePage }) => {
     // Queue 1 win + 4 no-wins: the win ensures the wins-array schema is exercised,
     // and mocks prevent bonus games from exhausting the test timeout.
     const totalBet = await gamePage.getBet();
@@ -87,7 +87,7 @@ test.describe('API Contract', () => {
     }
   });
 
-  test('win.item references a valid symbol ID', async ({ gamePage }) => {
+  test('Verify that every win.item in the response maps to a valid symbol ID from the SYMBOLS table', async ({ gamePage }) => {
     // Use a mocked win so the test runs in one instant spin with a guaranteed win
     // object to validate — no live-API bonus games that would exhaust the timeout.
     const totalBet = await gamePage.getBet();
@@ -101,7 +101,7 @@ test.describe('API Contract', () => {
     }
   });
 
-  test('payline win.line is an array of valid row indices (0 to ROWS-1)', async ({ gamePage }) => {
+  test('Verify that each payline win.line array contains only valid row indices between 0 and ROWS-1', async ({ gamePage }) => {
     // win.line for Rock & Riches is an array of row indices like [0,1,2,1,0]
     const totalBet = await gamePage.getBet();
     gamePage.interceptor.mockNextSpin('win', totalBet);
@@ -120,7 +120,7 @@ test.describe('API Contract', () => {
     }
   });
 
-  test('win.count is between 3 and REELS for payline wins', async ({ gamePage }) => {
+  test('Verify that payline win.count is at least 3 (minimum match) and at most REELS (maximum possible match)', async ({ gamePage }) => {
     const totalBet = await gamePage.getBet();
     gamePage.interceptor.mockNextSpin('win', totalBet);
     await gamePage.spinAndWait();
@@ -134,7 +134,7 @@ test.describe('API Contract', () => {
     }
   });
 
-  test('payload.nominal matrix matches display dimensions (if present)', async ({ gamePage }) => {
+  test('Verify that payload.nominal matrix has the same dimensions as payload.display when present', async ({ gamePage }) => {
     await gamePage.spinAndWait();
     const payload  = gamePage.interceptor.getLastSpin()!.response.payload as unknown as Record<string, unknown>;
     const display  = payload['display'] as number[][];
@@ -150,13 +150,13 @@ test.describe('API Contract', () => {
     }
   });
 
-  test('response includes a localState field', async ({ gamePage }) => {
+  test('Verify that the spin response includes a localState field for session persistence', async ({ gamePage }) => {
     await gamePage.spinAndWait();
     const spin = gamePage.interceptor.getLastSpin()!;
     expect(spin.response.localState !== undefined).toBe(true);
   });
 
-  test('request body includes bet config fields', async ({ gamePage }) => {
+  test('Verify that the spin request body contains a bet object with a numeric value field', async ({ gamePage }) => {
     await gamePage.spinAndWait();
     const spin = gamePage.interceptor.getLastSpin()!;
     const req  = spin.request;
@@ -164,7 +164,7 @@ test.describe('API Contract', () => {
     expect(typeof req.bet.value).toBe('number');
   });
 
-  test('ten consecutive spins all return valid responses', async ({ gamePage }) => {
+  test('Verify that 10 consecutive spins all return HTTP 200 with a valid payload containing a display array', async ({ gamePage }) => {
     // Mock all 10 spins with no-win to prevent bonus triggers and keep each spin
     // as a single-phase response (start+end in one record = exactly 10 new entries).
     // The live API uses a 2-phase pattern which would produce 20 entries for 10 spins

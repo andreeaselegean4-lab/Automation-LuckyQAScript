@@ -35,7 +35,7 @@ async function spinAndAssertBetSent(gamePage: GamePage): Promise<void> {
     expect(Math.abs(betCfg.amount * betCfg.value - displayedBet)).toBeLessThanOrEqual(0.01);
 }
 
-test.describe('Bet Controls', () => {
+test.describe('Bet Controls — Verify Bet Increase, Decrease, Limits, and API Sync', () => {
 
     // Enable turbo (fast-spin) mode before every test to reduce animation time.
     test.beforeEach(async ({ gamePage }) => {
@@ -44,7 +44,7 @@ test.describe('Bet Controls', () => {
 
     // ─── Bet Button UI ────────────────────────────────────────────────────────────
 
-    test('increase bet button raises the displayed bet', async ({ gamePage }) => {
+    test('Verify that clicking the increase bet button raises the displayed bet value', async ({ gamePage }) => {
         const betBefore = await gamePage.getBet();
         await gamePage.increaseBet();
         const betAfter = await gamePage.getBet();
@@ -52,7 +52,7 @@ test.describe('Bet Controls', () => {
         expect(betAfter).toBeGreaterThanOrEqual(betBefore);
     });
 
-    test('decrease bet button lowers the displayed bet', async ({ gamePage }) => {
+    test('Verify that clicking the decrease bet button lowers the displayed bet value', async ({ gamePage }) => {
         // First raise the bet so there's room to decrease
         await gamePage.increaseBet(2);
         const betBefore = await gamePage.getBet();
@@ -61,7 +61,7 @@ test.describe('Bet Controls', () => {
         expect(betAfter).toBeLessThanOrEqual(betBefore);
     });
 
-    test('bet cannot be increased beyond maximum', async ({ gamePage }) => {
+    test('Verify that the bet value stays capped at the maximum limit when clicking increase repeatedly', async ({ gamePage }) => {
         // Click increase many times to reach max
         await gamePage.increaseBet(20);
         const maxBet = await gamePage.getBet();
@@ -72,7 +72,7 @@ test.describe('Bet Controls', () => {
         expect(betAfter).toBe(maxBet);
     });
 
-    test('bet cannot be decreased below minimum', async ({ gamePage }) => {
+    test('Verify that the bet value stays at the minimum limit when clicking decrease repeatedly', async ({ gamePage }) => {
         await gamePage.decreaseBet(20);
         const minBet = await gamePage.getBet();
         await gamePage.decreaseBet(5);
@@ -82,12 +82,12 @@ test.describe('Bet Controls', () => {
 
     // ─── Bet Sent in API Request ──────────────────────────────────────────────────
 
-    test('increased bet is sent in the next spin request', async ({ gamePage }) => {
+    test('Verify that after increasing the bet, the new bet value is correctly sent in the next spin API request', async ({ gamePage }) => {
         await gamePage.increaseBet();
         await spinAndAssertBetSent(gamePage);
     });
 
-    test('decreased bet is sent in the next spin request', async ({ gamePage }) => {
+    test('Verify that after decreasing the bet, the new bet value is correctly sent in the next spin API request', async ({ gamePage }) => {
         await gamePage.increaseBet(3); // go up first to make room
         await gamePage.decreaseBet();
         await spinAndAssertBetSent(gamePage);
@@ -95,7 +95,7 @@ test.describe('Bet Controls', () => {
 
     // ─── Controls During / After Spin ────────────────────────────────────────────
 
-    test('bet controls are disabled during spin', async ({ gamePage }) => {
+    test('Verify that bet increase and decrease buttons are disabled while a spin is in progress', async ({ gamePage }) => {
         await gamePage.spin(); // start but do not wait
         // waitForSpinning ensures the spin is actually in progress before we check —
         // without this the controls may still be enabled if the click hasn't registered
@@ -106,7 +106,7 @@ test.describe('Bet Controls', () => {
         await gamePage.waitForSpinComplete();
     });
 
-    test('bet controls are re-enabled after spin', async ({ gamePage }) => {
+    test('Verify that bet controls are re-enabled after a spin completes and the game returns to idle', async ({ gamePage }) => {
         // Mock the spin so this test doesn't block on a real network call
         gamePage.interceptor.mockNextSpin('no-win', await gamePage.getBet());
         await gamePage.spinAndWait();
@@ -118,7 +118,7 @@ test.describe('Bet Controls', () => {
 
     // ─── Balance Integrity ────────────────────────────────────────────────────────
 
-    test('balance deducted matches the new bet level after increase', async ({ gamePage }) => {
+    test('Verify that the balance deduction after a spin matches the new bet level set by the increase button', async ({ gamePage }) => {
         await gamePage.increaseBet();
         const newBet = await gamePage.getBet();
         // Mock a no-win so the balance delta equals exactly the bet — no win

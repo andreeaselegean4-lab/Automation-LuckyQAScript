@@ -9,7 +9,7 @@ import { test, expect } from '../../src/fixtures/game.fixture';
 test.describe('Balance & Bet Compliance', () => {
   test.describe.configure({ timeout: 180_000 });
 
-  test('TLIB-470: Balance immediately reflects bet on spin', async ({ gamePage }) => {
+  test('TLIB-470: Verify that the balance changes immediately when a spin is initiated (bet deducted in real time)', async ({ gamePage }) => {
     const balanceBefore = await gamePage.getBalance();
     expect(balanceBefore, 'Initial balance should be positive').toBeGreaterThan(0);
 
@@ -28,13 +28,13 @@ test.describe('Balance & Bet Compliance', () => {
     await gamePage.waitForIdle(30_000).catch(() => {});
   });
 
-  test('TLIB-87+179: Balance visible during and after spin', async ({ gamePage }) => {
+  test('TLIB-87+179: Verify that the balance display remains visible both during and after a spin completes', async ({ gamePage }) => {
     await expect(gamePage.balanceDisplay).toBeVisible();
     await gamePage.spinAndWait();
     await expect(gamePage.balanceDisplay).toBeVisible();
   });
 
-  test('TLIB-180 [IOM]: Min and max stakes available', async ({ gamePage }) => {
+  test('TLIB-180 [IOM]: Verify that minimum and maximum bet stakes are available and max is greater than min', async ({ gamePage }) => {
     // Decrease to minimum
     await gamePage.decreaseBet(30);
     const minBet = await gamePage.getBet();

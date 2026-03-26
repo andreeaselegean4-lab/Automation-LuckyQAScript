@@ -37,7 +37,7 @@ const VIEWPORTS: ViewportDef[] = [
 // ── Per-viewport test generation ─────────────────────────────────────────────
 
 for (const vp of VIEWPORTS) {
-  base.describe(`Responsive — ${vp.label}`, () => {
+  base.describe(`Responsive Layout — ${vp.label}`, () => {
 
     base.use({ viewport: { width: vp.width, height: vp.height } });
 
@@ -68,38 +68,38 @@ for (const vp of VIEWPORTS) {
       await gamePage.balance.init();
     });
 
-    base('no JS errors on load', async () => {
+    base('Verify that the game loads without JavaScript errors at this viewport size', async () => {
       expect(consoleErrors).toHaveLength(0);
     });
 
-    base('spin button is visible', async () => {
+    base('Verify that the spin button is visible and accessible at this viewport size', async () => {
       await expect(gamePage.spinButton).toBeVisible();
     });
 
-    base('balance display is visible', async () => {
+    base('Verify that the balance display element is visible at this viewport size', async () => {
       await expect(gamePage.balanceDisplay).toBeVisible();
     });
 
-    base('balance is a positive number', async () => {
+    base('Verify that the balance shows a positive number at this viewport size', async () => {
       const balance = await gamePage.getBalance();
       expect(balance).toBeGreaterThan(0);
     });
 
-    base('a spin completes without error', async () => {
+    base('Verify that a full spin cycle completes without errors and returns to idle at this viewport size', async () => {
       await gamePage.spinAndWait();
       const idle = await gamePage.isSpinButtonEnabled();
       expect(idle).toBe(true);
       expect(consoleErrors).toHaveLength(0);
     });
 
-    base('no horizontal overflow (no scrollbar)', async ({ page }) => {
+    base('Verify that no horizontal scrollbar appears and page content fits within the viewport width', async ({ page }) => {
       const hasHScroll = await page.evaluate(() => {
         return document.documentElement.scrollWidth > document.documentElement.clientWidth;
       });
       expect(hasHScroll).toBe(false);
     });
 
-    base('bet value is readable', async () => {
+    base('Verify that the bet value is readable and shows a positive number at this viewport size', async () => {
       const bet = await gamePage.getBet();
       expect(bet).toBeGreaterThan(0);
     });

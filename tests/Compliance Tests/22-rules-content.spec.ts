@@ -49,7 +49,7 @@ test.describe('Rules Content — MGA Requirements', () => {
   }
 
   // ── TLIB-343: RTP% displayed ──────────────────────────────────────────────
-  test('TLIB-343: Correct theoretical RTP% displayed in rules', async ({ gamePage }) => {
+  test('TLIB-343: Verify that the paytable contains RTP% documentation matching the configured brand ID', async ({ gamePage }) => {
     const pt = await ensurePaytable(gamePage.page);
 
     // ── 1. Resolve the configured brand ID ──────────────────────────────────
@@ -115,7 +115,7 @@ test.describe('Rules Content — MGA Requirements', () => {
   });
 
   // ── TLIB-335: Configuration references ────────────────────────────────────
-  test('TLIB-335: Rules reference game configuration accurately', async ({ gamePage }) => {
+  test('TLIB-335: Verify that the rules modal contains game configuration references (bet controls, balance, multi-page paytable)', async ({ gamePage }) => {
     const pt = await ensurePaytable(gamePage.page);
     const dom = await getDOMComplianceEvidence(gamePage.page);
 
@@ -135,7 +135,7 @@ test.describe('Rules Content — MGA Requirements', () => {
   });
 
   // ── TLIB-345: Win calculation explained ───────────────────────────────────
-  test('TLIB-345: Win calculation and payout patterns explained', async ({ gamePage }) => {
+  test('TLIB-345: Verify that the paytable documents win calculations with a multi-page canvas and visible win display', async ({ gamePage }) => {
     const pt = await ensurePaytable(gamePage.page);
     const dom = await getDOMComplianceEvidence(gamePage.page);
 
@@ -154,7 +154,7 @@ test.describe('Rules Content — MGA Requirements', () => {
   });
 
   // ── TLIB-348: All interactions explained ──────────────────────────────────
-  test('TLIB-348: All possible game interactions explained', async ({ gamePage }) => {
+  test('TLIB-348: Verify that the paytable exists alongside all required interactive controls (spin, bet, autoplay)', async ({ gamePage }) => {
     const pt = await ensurePaytable(gamePage.page);
     const dom = await getDOMComplianceEvidence(gamePage.page);
 
@@ -181,7 +181,7 @@ test.describe('Rules Content — MGA Requirements', () => {
   });
 
   // ── TLIB-351: Win-affecting events explained ──────────────────────────────
-  test('TLIB-351: Win-affecting events/elements explained', async ({ gamePage }) => {
+  test('TLIB-351: Verify that the paytable has sufficient pages (3+) to document win-affecting elements (wild, scatter, bonus)', async ({ gamePage }) => {
     const pt = await ensurePaytable(gamePage.page);
 
     // A certified slot game's paytable with ≥3 pages documents special features
@@ -197,7 +197,7 @@ test.describe('Rules Content — MGA Requirements', () => {
   });
 
   // ── TLIB-352: All game states explained ───────────────────────────────────
-  test('TLIB-352: All game states and outcomes explained', async ({ gamePage }) => {
+  test('TLIB-352: Verify that the paytable documents game states alongside visible spin and win display controls', async ({ gamePage }) => {
     const pt = await ensurePaytable(gamePage.page);
     const dom = await getDOMComplianceEvidence(gamePage.page);
 

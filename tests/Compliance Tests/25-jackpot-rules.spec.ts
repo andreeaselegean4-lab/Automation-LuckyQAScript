@@ -35,7 +35,7 @@ test.describe('Jackpot Rules Compliance', () => {
     return paytable;
   }
 
-  test('TLIB-370: Rules explain how to win the jackpot', async ({ gamePage }) => {
+  test('TLIB-370: Verify that the paytable documents how to win the jackpot with a multi-page canvas', async ({ gamePage }) => {
     test.skip(!hasJackpots, 'Game has no jackpot mechanics — skipping');
 
     const jackpotTiers = Object.keys(JACKPOTS);
@@ -51,7 +51,7 @@ test.describe('Jackpot Rules Compliance', () => {
     ).toBeTruthy();
   });
 
-  test('TLIB-370: Jackpot tier values disclosed', async ({ gamePage }) => {
+  test('TLIB-370: Verify that all jackpot tier multiplier values are documented in the paytable', async ({ gamePage }) => {
     test.skip(!hasJackpots, 'Game has no jackpot mechanics — skipping');
 
     const tiers = Object.entries(JACKPOTS).map(
@@ -67,7 +67,7 @@ test.describe('Jackpot Rules Compliance', () => {
     ).toBeTruthy();
   });
 
-  test('TLIB-371 [IOM]: Jackpot RTP stated (including base game)', async ({ gamePage }) => {
+  test('TLIB-371 [IOM]: Verify that jackpot RTP% including base game is documented in the paytable', async ({ gamePage }) => {
     test.skip(!hasJackpots, 'Game has no jackpot mechanics — skipping');
 
     const pt = await ensurePaytable(gamePage.page);
@@ -80,7 +80,7 @@ test.describe('Jackpot Rules Compliance', () => {
     ).toBeTruthy();
   });
 
-  test('TLIB-511 [IOM]: Jackpot limits described', async ({ gamePage }) => {
+  test('TLIB-511 [IOM]: Verify that jackpot limits and multiplier caps are described in the paytable rules', async ({ gamePage }) => {
     test.skip(!hasJackpots, 'Game has no jackpot mechanics — skipping');
 
     const hasLimits = Object.values(JACKPOTS).every(j => j.multiplier > 0);

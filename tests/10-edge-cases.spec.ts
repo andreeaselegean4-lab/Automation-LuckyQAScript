@@ -40,9 +40,9 @@ async function navigateDebug(gamePage: import('../src/page-objects/GamePage').Ga
 
 // ── Mock-based edge cases (no debug mode required) ────────────────────────────
 
-test.describe('Edge Cases — Mock Responses [mock]', () => {
+test.describe('Edge Cases — Verify Game Behaviour With Mocked Spin Outcomes (Jackpot, No-Win, Bonus)', () => {
 
-  test('grand jackpot mock: balance increases by expected amount', async ({ gamePage }) => {
+  test('Verify that a mocked grand jackpot spin credits the correct win amount to the balance', async ({ gamePage }) => {
     const bet         = await gamePage.getBet();
     const mockPayload = SpinInterceptor.buildGrandJackpot(bet);
     gamePage.interceptor.queueMockResponse(mockPayload);
@@ -61,7 +61,7 @@ test.describe('Edge Cases — Mock Responses [mock]', () => {
     expect(Math.abs((before - bet + totalWin) - after)).toBeLessThanOrEqual(0.10);
   });
 
-  test('no-win mock: balance decreases by exactly the bet', async ({ gamePage }) => {
+  test('Verify that a mocked no-win spin deducts exactly the bet amount from the balance', async ({ gamePage }) => {
     const bet   = await gamePage.getBet();
     const mock  = SpinInterceptor.buildNoWin(bet);
     gamePage.interceptor.queueMockResponse(mock);
@@ -73,7 +73,7 @@ test.describe('Edge Cases — Mock Responses [mock]', () => {
     expect(Math.abs(after - (before - bet))).toBeLessThanOrEqual(0.02);
   });
 
-  test('winning mock: Last Win display shows correct amount', async ({ gamePage }) => {
+  test('Verify that the Last Win display shows the correct amount after a mocked winning spin', async ({ gamePage }) => {
     const bet     = await gamePage.getBet();
     const winAmt  = bet * 10;
     const mock    = SpinInterceptor.buildWin(bet, [{ amount: winAmt, item: 7, line: [1, 1, 1, 1, 1], count: 5 }]);
@@ -86,7 +86,7 @@ test.describe('Edge Cases — Mock Responses [mock]', () => {
     expect(Math.abs(displayed - winAmt * coinValue)).toBeLessThanOrEqual(0.05);
   });
 
-  test('Hold & Win bonus trigger mock: game handles bonus flag without crashing', async ({ gamePage, consoleErrors }) => {
+  test('Verify that a mocked Hold & Win bonus trigger does not cause JavaScript errors or crash the game', async ({ gamePage, consoleErrors }) => {
     const bet  = await gamePage.getBet();
     const mock = SpinInterceptor.buildBonusTrigger(bet);
     gamePage.interceptor.queueMockResponse(mock);
@@ -99,7 +99,7 @@ test.describe('Edge Cases — Mock Responses [mock]', () => {
     expect(consoleErrors).toHaveLength(0);
   });
 
-  test('free spins trigger mock: game handles free-spin flag without crashing', async ({ gamePage, consoleErrors }) => {
+  test('Verify that a mocked free spins trigger does not cause JavaScript errors or crash the game', async ({ gamePage, consoleErrors }) => {
     const bet  = await gamePage.getBet();
     const mock = SpinInterceptor.buildFreeSpinsTrigger(bet);
     gamePage.interceptor.queueMockResponse(mock);
@@ -109,7 +109,7 @@ test.describe('Edge Cases — Mock Responses [mock]', () => {
     expect(consoleErrors).toHaveLength(0);
   });
 
-  test('three queued mocks fire in order', async ({ gamePage }) => {
+  test('Verify that three queued mock responses (no-win, jackpot, no-win) fire in the correct FIFO order', async ({ gamePage }) => {
     const bet = await gamePage.getBet();
     gamePage.interceptor.queueMockResponse(SpinInterceptor.buildNoWin(bet));
     gamePage.interceptor.queueMockResponse(SpinInterceptor.buildGrandJackpot(bet));
@@ -128,9 +128,9 @@ test.describe('Edge Cases — Mock Responses [mock]', () => {
 
 // ── Debug-trigger edge cases (requires ?debug=true build) ─────────────────────
 
-test.describe('Edge Cases — Debug Trigger Scenarios [debug]', () => {
+test.describe('Edge Cases — Verify Debug Trigger Scenarios (Jackpot, Near-Miss, Bonus, Free Games)', () => {
 
-  test('Grand Jackpot scenario fires correctly', async ({ gamePage, gameDebugUrl }) => {
+  test('Verify that the debug Grand Jackpot scenario produces a total win greater than the MINI jackpot multiplier', async ({ gamePage, gameDebugUrl }) => {
     await navigateDebug(gamePage, gameDebugUrl);
 
     const available = await gamePage.debug.isAvailable();
@@ -149,7 +149,7 @@ test.describe('Edge Cases — Debug Trigger Scenarios [debug]', () => {
     expect(total).toBeGreaterThan(bet * JACKPOTS.MINI.multiplier);
   });
 
-  test('Near-miss (anticipation) scenario does not award a jackpot win', async ({ gamePage, gameDebugUrl }) => {
+  test('Verify that the debug near-miss scenario triggers anticipation animation but does not award any jackpot prize coins', async ({ gamePage, gameDebugUrl }) => {
     await navigateDebug(gamePage, gameDebugUrl);
 
     const available = await gamePage.debug.isAvailable();
@@ -167,7 +167,7 @@ test.describe('Edge Cases — Debug Trigger Scenarios [debug]', () => {
     expect(hasJackpot).toBe(false);
   });
 
-  test('Coin bonus scenario triggers without JS errors', async ({ gamePage, gameDebugUrl, consoleErrors }) => {
+  test('Verify that the debug coin bonus scenario triggers the Hold & Win transition without any JavaScript errors', async ({ gamePage, gameDebugUrl, consoleErrors }) => {
     await navigateDebug(gamePage, gameDebugUrl);
 
     const available = await gamePage.debug.isAvailable();
@@ -183,7 +183,7 @@ test.describe('Edge Cases — Debug Trigger Scenarios [debug]', () => {
     expect(consoleErrors).toHaveLength(0);
   });
 
-  test('Free Games scenario triggers without JS errors', async ({ gamePage, gameDebugUrl, consoleErrors }) => {
+  test('Verify that the debug free games scenario triggers correctly with remaining free spins and no JavaScript errors', async ({ gamePage, gameDebugUrl, consoleErrors }) => {
     await navigateDebug(gamePage, gameDebugUrl);
 
     const available = await gamePage.debug.isAvailable();
@@ -201,7 +201,7 @@ test.describe('Edge Cases — Debug Trigger Scenarios [debug]', () => {
     expect(spin.response.payload.remaining ?? 0).toBeGreaterThan(0);
   });
 
-  test('All Jackpots in Free Games produces multiple wins', async ({ gamePage, gameDebugUrl }) => {
+  test('Verify that the debug all-jackpots-in-free-games scenario produces at least one win in the response', async ({ gamePage, gameDebugUrl }) => {
     await navigateDebug(gamePage, gameDebugUrl);
 
     const available = await gamePage.debug.isAvailable();
@@ -218,7 +218,7 @@ test.describe('Edge Cases — Debug Trigger Scenarios [debug]', () => {
     expect(wins.length).toBeGreaterThanOrEqual(1);
   });
 
-  test('Bonus trigger with payline win scenario', async ({ gamePage, gameDebugUrl, consoleErrors }) => {
+  test('Verify that the debug bonus-with-payline scenario triggers both bonus and payline win without JavaScript errors', async ({ gamePage, gameDebugUrl, consoleErrors }) => {
     await navigateDebug(gamePage, gameDebugUrl);
 
     const available = await gamePage.debug.isAvailable();

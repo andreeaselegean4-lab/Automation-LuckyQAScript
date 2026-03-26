@@ -21,7 +21,7 @@ import { SPIN_API_PATH } from '../src/constants/game.constants';
 
 const DEMOPLAY_PATTERN = `**${SPIN_API_PATH}`;
 
-test.describe('Network Interruption & Recovery', () => {
+test.describe('Network Interruption — Verify Game Recovery From Aborts, Delays, 500 Errors, and Disconnects', () => {
 
   // Generous timeout — some recovery paths involve retries / reconnect timers
   test.setTimeout(3 * 60 * 1_000);
@@ -44,7 +44,7 @@ test.describe('Network Interruption & Recovery', () => {
     await page.mouse.click(640, 360);
   }
 
-  test('mid-spin abort: game recovers without JS crash', async ({ gamePage, consoleErrors }) => {
+  test('Verify that the game recovers gracefully when a spin API response is aborted mid-flight (connection reset)', async ({ gamePage, consoleErrors }) => {
     let aborted = false;
 
     // Install an aborting route AFTER the interceptor (order matters — last route wins)
@@ -94,7 +94,7 @@ test.describe('Network Interruption & Recovery', () => {
     }
   });
 
-  test('delayed response (10s): spin eventually completes', async ({ gamePage, consoleErrors }) => {
+  test('Verify that the game handles a 10-second delayed spin API response without crashing or losing state', async ({ gamePage, consoleErrors }) => {
     let delayed = false;
 
     await gamePage.page.route(DEMOPLAY_PATTERN, async (route) => {
@@ -129,7 +129,7 @@ test.describe('Network Interruption & Recovery', () => {
     expect(criticalErrors).toHaveLength(0);
   });
 
-  test('HTTP 500 response: game does not crash', async ({ gamePage, consoleErrors }) => {
+  test('Verify that the game handles an HTTP 500 server error without crashing and preserves the balance', async ({ gamePage, consoleErrors }) => {
     let errorSent = false;
 
     await gamePage.page.route(DEMOPLAY_PATTERN, async (route) => {
@@ -170,7 +170,7 @@ test.describe('Network Interruption & Recovery', () => {
     }
   });
 
-  test('malformed JSON response: no unhandled exception', async ({ gamePage, consoleErrors }) => {
+  test('Verify that a malformed JSON response does not cause an unhandled page-level exception', async ({ gamePage, consoleErrors }) => {
     let corruptSent = false;
 
     await gamePage.page.route(DEMOPLAY_PATTERN, async (route) => {
@@ -197,7 +197,7 @@ test.describe('Network Interruption & Recovery', () => {
     expect(unhandled).toHaveLength(0);
   });
 
-  test('multiple consecutive failures then recovery', async ({ gamePage, consoleErrors }) => {
+  test('Verify that the game recovers to a usable state after 3 consecutive connection failures followed by a successful request', async ({ gamePage, consoleErrors }) => {
     let failCount = 0;
     const MAX_FAILS = 3;
 
@@ -244,7 +244,7 @@ test.describe('Network Interruption & Recovery', () => {
     }
   });
 
-  test('connection drop during autoplay: autoplay stops gracefully', async ({ gamePage, consoleErrors }) => {
+  test('Verify that autoplay stops gracefully when a network disconnection occurs during an active autoplay session', async ({ gamePage, consoleErrors }) => {
     await gamePage.startAutoplay();
 
     // Let a couple of spins go through normally

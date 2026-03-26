@@ -35,7 +35,7 @@ const AUTOPLAY_SPINS = 5; // number of spins to let autoplay run before stopping
 // browser context from the gamePage fixture so there is no shared state risk.
 test.describe.configure({ mode: 'parallel' });
 
-test.describe('Autoplay', () => {
+test.describe('Autoplay — Verify Automatic Spin Sessions, Stop Behaviour, and Balance Tracking', () => {
 
     // Enable turbo (fast-spin) mode before every test to shorten reel animations.
     test.beforeEach(async ({ gamePage }) => {
@@ -64,7 +64,7 @@ test.describe('Autoplay', () => {
 
     // ─── Tests ────────────────────────────────────────────────────────────────────
 
-    test('autoplay button is clickable and starts autoplay', async ({ gamePage }) => {
+    test('Verify that clicking the autoplay button starts autoplay mode and disables the spin button', async ({ gamePage }) => {
         // Queue enough mocks so autoplay doesn't stall waiting for the network
         const bet = await gamePage.getBet();
         gamePage.interceptor.queueMockResponses(
@@ -83,7 +83,7 @@ test.describe('Autoplay', () => {
         await gamePage.stopAutoplay();
     });
 
-    test(`autoplay fires ${AUTOPLAY_SPINS} spins automatically`, async ({ gamePage }) => {
+    test(`Verify that autoplay fires at least ${AUTOPLAY_SPINS} spins automatically without manual clicks`, async ({ gamePage }) => {
         // Queue AUTOPLAY_SPINS + 2 mocks so autoplay never blocks on the network
         const bet = await gamePage.getBet();
         gamePage.interceptor.queueMockResponses(
@@ -102,7 +102,7 @@ test.describe('Autoplay', () => {
         await gamePage.stopAutoplay();
     });
 
-    test('stopping autoplay returns game to idle after current spin', async ({ gamePage }) => {
+    test('Verify that stopping autoplay returns the spin button to enabled idle state after the current spin finishes', async ({ gamePage }) => {
         const bet = await gamePage.getBet();
         gamePage.interceptor.queueMockResponses(
             Array.from({ length: 5 }, () => SpinInterceptor.buildNoWin(bet)),
@@ -121,7 +121,7 @@ test.describe('Autoplay', () => {
         expect(enabled).toBe(true);
     });
 
-    test('bet controls are disabled during autoplay', async ({ gamePage }) => {
+    test('Verify that bet increase, decrease, and other controls are disabled during an active autoplay session', async ({ gamePage }) => {
         const bet = await gamePage.getBet();
         gamePage.interceptor.queueMockResponses(
             Array.from({ length: 5 }, () => SpinInterceptor.buildNoWin(bet)),
@@ -139,7 +139,7 @@ test.describe('Autoplay', () => {
         await gamePage.stopAutoplay();
     });
 
-    test('balance tracked correctly over autoplay session', async ({ gamePage }) => {
+    test('Verify that the balance change over an autoplay session matches the sum of bets deducted and wins credited', async ({ gamePage }) => {
         const bet = await gamePage.getBet();
 
         // Queue 5 mocks (2 extra) so autoplay never falls through to the live network
@@ -187,7 +187,7 @@ test.describe('Autoplay', () => {
         expect(Math.abs(balanceAfter - expectedBalance)).toBeLessThanOrEqual(0.10);
     });
 
-    test('no console errors during autoplay session', async ({ gamePage, consoleErrors }) => {
+    test('Verify that no JavaScript console errors occur during a full autoplay session of multiple spins', async ({ gamePage, consoleErrors }) => {
         const target = 4;
         const bet    = await gamePage.getBet();
         gamePage.interceptor.queueMockResponses(
@@ -202,7 +202,7 @@ test.describe('Autoplay', () => {
         expect(consoleErrors).toHaveLength(0);
     });
 
-    test('autoplay does not break after winning spin', async ({ gamePage }) => {
+    test('Verify that autoplay continues running normally after encountering a winning spin without stopping', async ({ gamePage }) => {
         // Queue a specific sequence: no-win → win → no-win → no-win
         // This guarantees a win is observed without waiting up to 90 s for a random one
         const bet = await gamePage.getBet();
