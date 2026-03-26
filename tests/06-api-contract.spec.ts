@@ -2,9 +2,9 @@
  * 06 — API Contract Tests
  *
  * Validates that every spin response from the server matches the documented
- * schema for Sands of Fortune: Hold & Win.
+ * schema for Rock & Riches.
  *
- * Grid:  5 reels × 3 rows  (display[reel][row], reel=0..4, row=0..2)
+ * Grid:  5 reels × 5 rows  (display[reel][row], reel=0..4, row=0..4)
  * API:   POST /demoplay
  * win.line format: array of 5 row-indices e.g. [0,1,2,1,0]
  *   (differs from Thunder Vault which uses a payline index integer)
@@ -102,7 +102,7 @@ test.describe('API Contract', () => {
   });
 
   test('payline win.line is an array of valid row indices (0 to ROWS-1)', async ({ gamePage }) => {
-    // win.line for Sands of Fortune is an array of row indices like [0,1,2,1,0]
+    // win.line for Rock & Riches is an array of row indices like [0,1,2,1,0]
     const totalBet = await gamePage.getBet();
     gamePage.interceptor.mockNextSpin('win', totalBet);
     await gamePage.spinAndWait();
