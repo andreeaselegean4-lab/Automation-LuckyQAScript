@@ -4,7 +4,7 @@
  * Validates that every spin response from the server matches the documented
  * schema for Rock & Riches.
  *
- * Grid:  5 reels × 5 rows  (display[reel][row], reel=0..4, row=0..4)
+ * Grid:  5 reels × 3 rows  (display[reel][row], reel=0..4, row=0..2)
  * API:   POST /demoplay
  * win.line format: array of 5 row-indices e.g. [0,1,2,1,0]
  *   (differs from Thunder Vault which uses a payline index integer)
