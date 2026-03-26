@@ -49,7 +49,7 @@ export const SPIN_API_PATH = '/demoplay';
 
 // ── Grid dimensions ───────────────────────────────────────────────────────────
 
-export const REELS = 3;
+export const REELS = 5;
 export const ROWS  = 3;
 
 // ── Symbols ───────────────────────────────────────────────────────────────────
