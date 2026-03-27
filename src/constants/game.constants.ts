@@ -162,26 +162,51 @@ export const TURBO_TIME_SCALE = 1.5;
 // ── Debug Trigger Names ───────────────────────────────────────────────────────
 
 /**
- * Scenario names for debug mode.
- * Game-specific triggers for Thunder Vault + legacy triggers
- * (kept for backwards compatibility with non-compliance tests).
+ * Scenario names for debug mode (?debug=true → loads stub.js).
+ *
+ * These pre-seed the server-side RNG so the next spin produces a specific,
+ * deterministic outcome.  Unlike mocks, the server state is REAL — which
+ * means reload/recovery tests can verify true session restoration.
+ *
+ * Source: https://cdn2.avocadospins.com/client/rock-and-riches-client/latest/stub.js
  */
 export const DEBUG_TRIGGERS = {
-  COIN_BONUS:            'coin bonus',
-  REGULAR_WIN:           'regular win',
-  GRAND_JACKPOT:         'grand-jackpot',
-  MAJOR_JACKPOT:         'major-jackpot',
-  MINOR_JACKPOT:         'minor-jackpot',
-  MINI_JACKPOT:          'mini-jackpot',
-  BIG_WIN:               'coin bonus with one mini game',
-  BONUS_WITH_PAYLINE:    'regular win + coin bonus',
-  NEAR_MISS:             'anticipation',
-  // Legacy triggers (kept for compilation compatibility)
-  FREE_GAMES:            'free games',
-  ALL_JACKPOTS_IN_FREE:  'free games with all wins',
-  MYSTERY_COIN:          'mystery coin',
-  MEGA_COIN:             'mega coin',
-  STATUE_FEATURE:        'statue feature',
+  // ── Progression ──────────────────────────────────────────────────────
+  PSEUDO_PROGRESSION:               'Pseudo progression',
+
+  // ── Anticipation (near-miss) ─────────────────────────────────────────
+  ANTICIPATION_5_COINS:             'Anticipation: 5 coins on first 2 reels',
+  ANTICIPATION_2_COINS_POT:         'Anticipation: 2 coins + pot',
+
+  // ── Base Game Coin Collection ────────────────────────────────────────
+  COIN_COLLECT_1:                   'Base Game: Coin Collect - 1 collector',
+  COIN_COLLECT_2:                   'Base Game: Coin Collect - 2 collectors',
+  COIN_COLLECT_3:                   'Base Game: Coin Collect - 3 collectors',
+  COIN_COLLECT_STANDARD_WIN:        'Base Game: Coin Collect + standard win',
+  COIN_COLLECT_WILD_WIN:            'Base Game: Coin Collect + Win with Wild',
+
+  // ── Hold & Win Bonus ─────────────────────────────────────────────────
+  HW_1_COLLECTOR:                   'H&W - 1 collector',
+  HW_2_COLLECTORS:                  'H&W - 2 collectors',
+  HW_3_COLLECTORS:                  'H&W - 3 collectors',
+  HW_1_PLUS_2_COLLECTORS:           'H&W - 1 collector + 2 collectors',
+  HW_MAX_WIN:                       'H&W - Max Win',
+  HW_3_COLLECTORS_LOTS_OF_COINS:    'H&W - 3 collectors with a lot of coins',
+  HW_EMPTY_POT:                     'H&W - Get a second pot that never collects any coins',
+
+  // ── Jackpots ─────────────────────────────────────────────────────────
+  MULTIPLE_JACKPOTS:                'Multiple jackpots at once',
+  MINI_JACKPOT:                     'Mini Jackpot',
+  MINOR_JACKPOT:                    'Minor Jackpot',
+  MAJOR_JACKPOT:                    'Major Jackpot',
+  GRAND_JACKPOT:                    'Grand Jackpot',
+
+  // ── Big Win Thresholds ───────────────────────────────────────────────
+  ALL_BIG_WIN_THRESHOLDS:           'All Big win thresholds',
+
+  // ── Symbol Wins (High / Low Pay) ─────────────────────────────────────
+  HP1: 'HP1', HP2: 'HP2', HP3: 'HP3',
+  LP1: 'LP1', LP2: 'LP2', LP3: 'LP3', LP4: 'LP4', LP5: 'LP5',
 } as const;
 
 export type DebugTrigger = typeof DEBUG_TRIGGERS[keyof typeof DEBUG_TRIGGERS];
