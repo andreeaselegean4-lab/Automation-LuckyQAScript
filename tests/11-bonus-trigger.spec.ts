@@ -25,7 +25,7 @@
  */
 import { test, expect }                                        from '../src/fixtures/game.fixture';
 import { SpinInterceptor }                                     from '../src/utils/spinInterceptor';
-import { COLLECTOR_COIN, COLLECTION_THRESHOLDS, JACKPOTS, DEBUG_TRIGGERS } from '../src/constants/game.constants';
+import { COLLECTOR_COIN, COLLECTION_THRESHOLDS, JACKPOTS, DEBUG_TRIGGERS, FEATURES } from '../src/constants/game.constants';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -46,6 +46,8 @@ async function navigateDebug(gamePage: import('../src/page-objects/GamePage').Ga
 // ── Collection constant tests (no navigation required) ───────────────────────
 
 test.describe('Bonus Constants — Verify Collector Coin, Thresholds, and Jackpot Multiplier Values', () => {
+
+  test.skip(!FEATURES.HOLD_AND_WIN, 'Skipped — this game does not have Hold & Win');
 
   test('Verify that COLLECTOR_COIN constant equals 10, matching the COIN symbol ID in ResponseAdapter', () => {
     // Sands of Fortune: COIN/CHEST symbol = 10
@@ -70,6 +72,7 @@ test.describe('Bonus Constants — Verify Collector Coin, Thresholds, and Jackpo
 
 test.describe('Hold & Win Bonus Lifecycle — Verify Trigger, Transition, Award, and Return to Idle [debug]', () => {
 
+  test.skip(!FEATURES.HOLD_AND_WIN, 'Skipped — this game does not have Hold & Win');
   test.setTimeout(5 * 60 * 1_000);
 
   test('Verify that triggering the Hold & Win bonus via debug mode does not produce any JavaScript errors during the transition animation', async ({ gamePage, gameDebugUrl, consoleErrors }) => {
@@ -163,6 +166,8 @@ test.describe('Hold & Win Bonus Lifecycle — Verify Trigger, Transition, Award,
 // ── Mock-based bonus tests (fallback for builds without stub.js) ──────────────
 
 test.describe('Hold & Win Bonus — Verify Bonus Entry and Recovery Using Mocked Payloads [mock]', () => {
+
+  test.skip(!FEATURES.HOLD_AND_WIN, 'Skipped — this game does not have Hold & Win');
 
   test('Verify that a mocked bonus trigger payload does not cause JavaScript errors during the bonus entry animation', async ({ gamePage, consoleErrors }) => {
     const bet  = await gamePage.getBet();

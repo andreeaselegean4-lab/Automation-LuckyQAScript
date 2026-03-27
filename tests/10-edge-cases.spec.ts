@@ -20,7 +20,7 @@
  */
 import { test, expect }                                        from '../src/fixtures/game.fixture';
 import { SpinInterceptor }                                     from '../src/utils/spinInterceptor';
-import { SYMBOLS, PRIZE_COIN_LIST, COLLECTOR_COIN, JACKPOTS, DEBUG_TRIGGERS } from '../src/constants/game.constants';
+import { SYMBOLS, PRIZE_COIN_LIST, COLLECTOR_COIN, JACKPOTS, DEBUG_TRIGGERS, FEATURES } from '../src/constants/game.constants';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -87,6 +87,7 @@ test.describe('Edge Cases — Verify Game Behaviour With Mocked Spin Outcomes (J
   });
 
   test('Verify that a mocked Hold & Win bonus trigger does not cause JavaScript errors or crash the game', async ({ gamePage, consoleErrors }) => {
+    test.skip(!FEATURES.HOLD_AND_WIN, 'Skipped — this game does not have Hold & Win');
     const bet  = await gamePage.getBet();
     const mock = SpinInterceptor.buildBonusTrigger(bet);
     gamePage.interceptor.queueMockResponse(mock);
@@ -100,6 +101,7 @@ test.describe('Edge Cases — Verify Game Behaviour With Mocked Spin Outcomes (J
   });
 
   test('Verify that a mocked free spins trigger does not cause JavaScript errors or crash the game', async ({ gamePage, consoleErrors }) => {
+    test.skip(!FEATURES.FREE_SPINS, 'Skipped — this game does not have free spins');
     const bet  = await gamePage.getBet();
     const mock = SpinInterceptor.buildFreeSpinsTrigger(bet);
     gamePage.interceptor.queueMockResponse(mock);
@@ -168,6 +170,7 @@ test.describe('Edge Cases — Verify Debug Trigger Scenarios (Jackpot, Near-Miss
   });
 
   test('Verify that the debug coin bonus scenario triggers the Hold & Win transition without any JavaScript errors', async ({ gamePage, gameDebugUrl, consoleErrors }) => {
+    test.skip(!FEATURES.HOLD_AND_WIN, 'Skipped — this game does not have Hold & Win');
     await navigateDebug(gamePage, gameDebugUrl);
 
     const available = await gamePage.debug.isAvailable();
@@ -184,6 +187,7 @@ test.describe('Edge Cases — Verify Debug Trigger Scenarios (Jackpot, Near-Miss
   });
 
   test('Verify that the debug free games scenario triggers correctly with remaining free spins and no JavaScript errors', async ({ gamePage, gameDebugUrl, consoleErrors }) => {
+    test.skip(!FEATURES.FREE_SPINS, 'Skipped — this game does not have free spins');
     await navigateDebug(gamePage, gameDebugUrl);
 
     const available = await gamePage.debug.isAvailable();
@@ -202,6 +206,7 @@ test.describe('Edge Cases — Verify Debug Trigger Scenarios (Jackpot, Near-Miss
   });
 
   test('Verify that the debug all-jackpots-in-free-games scenario produces at least one win in the response', async ({ gamePage, gameDebugUrl }) => {
+    test.skip(!FEATURES.FREE_SPINS, 'Skipped — this game does not have free spins');
     await navigateDebug(gamePage, gameDebugUrl);
 
     const available = await gamePage.debug.isAvailable();
@@ -219,6 +224,7 @@ test.describe('Edge Cases — Verify Debug Trigger Scenarios (Jackpot, Near-Miss
   });
 
   test('Verify that the debug bonus-with-payline scenario triggers both bonus and payline win without JavaScript errors', async ({ gamePage, gameDebugUrl, consoleErrors }) => {
+    test.skip(!FEATURES.HOLD_AND_WIN, 'Skipped — this game does not have Hold & Win');
     await navigateDebug(gamePage, gameDebugUrl);
 
     const available = await gamePage.debug.isAvailable();

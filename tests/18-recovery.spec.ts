@@ -25,7 +25,7 @@ import { test, expect } from '../src/fixtures/game.fixture';
 import { SpinInterceptor } from '../src/utils/spinInterceptor';
 import {
   REELS, ROWS, COLLECTOR_COIN, PRIZE_COIN_LIST,
-  JACKPOTS, DEBUG_TRIGGERS,
+  JACKPOTS, DEBUG_TRIGGERS, FEATURES,
 } from '../src/constants/game.constants';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -250,6 +250,8 @@ test.describe('Base Game Recovery — Verify State Restoration After Page Reload
 
 test.describe('H&W Trigger & Bonus Recovery — Verify Hold and Win State Restoration After Reload', () => {
 
+  // Auto-skip entire block if the game does not have Hold & Win
+  test.skip(!FEATURES.HOLD_AND_WIN, 'Skipped — this game does not have Hold & Win');
   test.setTimeout(5 * 60 * 1_000);
 
   test('Verify that recovery after triggering 1 pot shows trigger screen and respin', async ({ gamePage, consoleErrors }) => {
@@ -392,6 +394,7 @@ test.describe('H&W Trigger & Bonus Recovery — Verify Hold and Win State Restor
 
 test.describe('Recovery for Pots — Verify Coin Landing and Pot Combination Recovery', () => {
 
+  test.skip(!FEATURES.HOLD_AND_WIN, 'Skipped — this game does not have Hold & Win');
   test.setTimeout(3 * 60 * 1_000);
 
   test('Verify recovery with 1 pot + 1 coin landing does not cause errors', async ({ gamePage, consoleErrors }) => {
@@ -455,6 +458,7 @@ test.describe('Recovery for Pots — Verify Coin Landing and Pot Combination Rec
 
 test.describe('Collection & Multiplying Recovery — Verify Recovery At Different Bonus Spin Points', () => {
 
+  test.skip(!FEATURES.HOLD_AND_WIN, 'Skipped — this game does not have Hold & Win');
   test.setTimeout(5 * 60 * 1_000);
 
   test('Verify recovery during collection after first spin shows respin state', async ({ gamePage, gameDebugUrl, consoleErrors }) => {
@@ -605,6 +609,7 @@ test.describe('Collection & Multiplying Recovery — Verify Recovery At Differen
 
 test.describe('Recovery Edge Cases — Verify Extreme and Combined Scenarios', () => {
 
+  test.skip(!FEATURES.HOLD_AND_WIN, 'Skipped — this game does not have Hold & Win');
   test.setTimeout(5 * 60 * 1_000);
 
   test('Verify recovery with 1 pot + coins + multipliers does not cause errors', async ({ gamePage, consoleErrors }) => {
@@ -733,6 +738,7 @@ test.describe('Recovery Edge Cases — Verify Extreme and Combined Scenarios', (
 
 test.describe('Progression Recovery — Verify Progression Stage Survives Page Reload', () => {
 
+  test.skip(!FEATURES.PROGRESSION, 'Skipped — this game does not have progression');
   test.setTimeout(3 * 60 * 1_000);
 
   test('Verify that progression stage 0 (value: 0) remains the same after recovery', async ({ gamePage }) => {

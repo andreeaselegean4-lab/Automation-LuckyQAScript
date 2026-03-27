@@ -135,6 +135,25 @@ export const FREE_SPINS_TRIGGER_COUNT = 99;
 /** No free spin awards */
 export const FREE_SPINS_AWARDS: readonly number[] = [];
 
+// ── Game Feature Flags ───────────────────────────────────────────────────────
+
+/**
+ * Feature flags — set to true/false depending on which features the current
+ * game supports. Tests that target a specific feature will auto-skip when
+ * the flag is false, so the same test suite works across different games.
+ */
+export const FEATURES = {
+  HOLD_AND_WIN:  true,   // Hold & Win bonus (coin collection + respins)
+  FREE_SPINS:    false,  // Free spins / free games feature
+  JACKPOTS:      true,   // Jackpot tiers (MINI, MINOR, MAJOR, GRAND)
+  WILDS:         true,   // Wild symbols
+  SCATTER:       false,  // Scatter symbols
+  PROGRESSION:   false,  // Progression meter (stages 0-3)
+  MULTIPLIERS:   false,  // Multiplying feature during bonus
+  PROSPERITY:    false,  // Prosperity spin feature
+  BUY_BONUS:     false,  // Buy bonus option
+} as const;
+
 // ── Turbo / FastPlay ──────────────────────────────────────────────────────────
 
 /** Animation speed multiplier in turbo mode */

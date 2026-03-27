@@ -38,7 +38,7 @@ import { loadSelectors }                   from '../src/config/selectors';
 // ── Config ────────────────────────────────────────────────────────────────────
 
 const LAUNCHER_BASE  = 'https://launcher.avocadospins.com';
-const GAME_ID        = process.env['GAME_ID'] ?? 'sands-of-fortune';
+const GAME_ID        = process.env['GAME_ID'] ?? 'rock-and-riches';
 const SCROLL_STEPS   = 8;    // number of scroll positions to capture
 const SCROLL_DELTA   = 400;  // pixels per scroll step
 
