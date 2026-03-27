@@ -160,7 +160,7 @@ test.describe('Edge Cases — Verify Debug Trigger Scenarios (Jackpot, Near-Miss
       return;
     }
 
-    await gamePage.debug.triggerScenario(DEBUG_TRIGGERS.ANTICIPATION_5_COINS);
+    await gamePage.debug.triggerScenario(DEBUG_TRIGGERS.ANTICIPATION);
     await gamePage.spinAndWait();
 
     const spin = gamePage.interceptor.getLastSpin()!;
@@ -169,7 +169,7 @@ test.describe('Edge Cases — Verify Debug Trigger Scenarios (Jackpot, Near-Miss
     expect(hasJackpot).toBe(false);
   });
 
-  test('Verify that the debug H&W 1 collector scenario triggers the Hold & Win transition without any JavaScript errors', async ({ gamePage, gameDebugUrl, consoleErrors }) => {
+  test('Verify that the debug coin bonus scenario triggers the Hold & Win transition without any JavaScript errors', async ({ gamePage, gameDebugUrl, consoleErrors }) => {
     test.skip(!FEATURES.HOLD_AND_WIN, 'Skipped — this game does not have Hold & Win');
     await navigateDebug(gamePage, gameDebugUrl);
 
@@ -179,14 +179,14 @@ test.describe('Edge Cases — Verify Debug Trigger Scenarios (Jackpot, Near-Miss
       return;
     }
 
-    await gamePage.debug.triggerScenario(DEBUG_TRIGGERS.HW_1_COLLECTOR);
+    await gamePage.debug.triggerScenario(DEBUG_TRIGGERS.COIN_BONUS);
     await gamePage.spinAndWait();
     await gamePage.page.waitForTimeout(3_000);
 
     expect(consoleErrors).toHaveLength(0);
   });
 
-  test('Verify that the debug coin collect + standard win scenario triggers correctly without errors', async ({ gamePage, gameDebugUrl, consoleErrors }) => {
+  test('Verify that the debug regular win + coin bonus scenario triggers correctly without errors', async ({ gamePage, gameDebugUrl, consoleErrors }) => {
     test.skip(!FEATURES.HOLD_AND_WIN, 'Skipped — this game does not have Hold & Win');
     await navigateDebug(gamePage, gameDebugUrl);
 
@@ -196,7 +196,7 @@ test.describe('Edge Cases — Verify Debug Trigger Scenarios (Jackpot, Near-Miss
       return;
     }
 
-    await gamePage.debug.triggerScenario(DEBUG_TRIGGERS.COIN_COLLECT_STANDARD_WIN);
+    await gamePage.debug.triggerScenario(DEBUG_TRIGGERS.REGULAR_WIN_COIN_BONUS);
     await gamePage.spinAndWait();
     await gamePage.page.waitForTimeout(3_000);
 
@@ -206,8 +206,8 @@ test.describe('Edge Cases — Verify Debug Trigger Scenarios (Jackpot, Near-Miss
     expect(wins.length).toBeGreaterThanOrEqual(1);
   });
 
-  test('Verify that the debug multiple jackpots scenario produces at least one win in the response', async ({ gamePage, gameDebugUrl }) => {
-    test.skip(!FEATURES.JACKPOTS, 'Skipped — this game does not have jackpots');
+  test('Verify that the debug free games scenario triggers correctly with remaining free spins and no JavaScript errors', async ({ gamePage, gameDebugUrl, consoleErrors }) => {
+    test.skip(!FEATURES.FREE_SPINS, 'Skipped — this game does not have free spins');
     await navigateDebug(gamePage, gameDebugUrl);
 
     const available = await gamePage.debug.isAvailable();
@@ -216,7 +216,26 @@ test.describe('Edge Cases — Verify Debug Trigger Scenarios (Jackpot, Near-Miss
       return;
     }
 
-    await gamePage.debug.triggerScenario(DEBUG_TRIGGERS.MULTIPLE_JACKPOTS);
+    await gamePage.debug.triggerScenario(DEBUG_TRIGGERS.FREE_GAMES);
+    await gamePage.spinAndWait();
+    await gamePage.page.waitForTimeout(3_000);
+
+    expect(consoleErrors).toHaveLength(0);
+    const spin = gamePage.interceptor.getLastSpin()!;
+    expect(spin.response.payload.remaining ?? 0).toBeGreaterThan(0);
+  });
+
+  test('Verify that the debug free games with all wins scenario produces at least one win in the response', async ({ gamePage, gameDebugUrl }) => {
+    test.skip(!FEATURES.FREE_SPINS, 'Skipped — this game does not have free spins');
+    await navigateDebug(gamePage, gameDebugUrl);
+
+    const available = await gamePage.debug.isAvailable();
+    if (!available) {
+      test.skip(true, 'Debug mode not available on this build');
+      return;
+    }
+
+    await gamePage.debug.triggerScenario(DEBUG_TRIGGERS.FREE_GAMES_WITH_ALL_WINS);
     await gamePage.spinAndWait();
 
     const spin = gamePage.interceptor.getLastSpin()!;
@@ -224,8 +243,8 @@ test.describe('Edge Cases — Verify Debug Trigger Scenarios (Jackpot, Near-Miss
     expect(wins.length).toBeGreaterThanOrEqual(1);
   });
 
-  test('Verify that the debug coin collect + wild win scenario triggers both collection and payline win without errors', async ({ gamePage, gameDebugUrl, consoleErrors }) => {
-    test.skip(!FEATURES.HOLD_AND_WIN, 'Skipped — this game does not have Hold & Win');
+  test('Verify that the debug wild scenario triggers a wild win without errors', async ({ gamePage, gameDebugUrl, consoleErrors }) => {
+    test.skip(!FEATURES.WILDS, 'Skipped — this game does not have wilds');
     await navigateDebug(gamePage, gameDebugUrl);
 
     const available = await gamePage.debug.isAvailable();
@@ -234,7 +253,7 @@ test.describe('Edge Cases — Verify Debug Trigger Scenarios (Jackpot, Near-Miss
       return;
     }
 
-    await gamePage.debug.triggerScenario(DEBUG_TRIGGERS.COIN_COLLECT_WILD_WIN);
+    await gamePage.debug.triggerScenario(DEBUG_TRIGGERS.WILD);
     await gamePage.spinAndWait();
     await gamePage.page.waitForTimeout(3_000);
 

@@ -4,7 +4,7 @@ import * as dotenv from 'dotenv';
 // Load environment-specific .env file.
 // Usage: ENV=toucan npx playwright test
 // Falls back to .env if ENV is not set.
-const envFile = process.env['ENV'] ? `.env.${process.env['ENV']}` : '.env.NovomaticGames';
+const envFile = process.env['ENV'] ? `.env.${process.env['ENV']}` : '.env.ToucanRoyale';
 dotenv.config({ path: envFile });
 
 export default defineConfig({

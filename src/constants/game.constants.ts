@@ -1,45 +1,37 @@
 /**
  * game.constants.ts
  *
- * All game-specific constants for Thunder Vault: Hold & Win
- * Engine: et=ng  |  API: POST /demoplay  |  Grid: 3 reels × 3 rows
+ * All game-specific constants for Sands of Fortune: Hold & Win
+ * Engine: et=tr  |  API: POST /demoplay  |  Grid: 5 reels × 3 rows
  *
  * Sources:
- *   - Live paytable inspection (8 pages)
+ *   - Live paytable inspection
  *   - Live DOM inspection (CSS selectors, UI elements)
+ *   - stub.js: https://cdn2.avocadospins.com/client/sands-of-fortune-client/latest/stub.js
  *
  * Features:
- *   - Collector (lightning bolt): appears on reel 2 only, gathers all Bonus symbols during Bonus Game
- *   - Bonus (gold hexagon coin): appears on reels 1 and 3, pays only during Bonus Game
- *   - Hold & Win bonus: triggered by at least 1 Bonus/Collector on each reel, 3 respins
+ *   - Wild: substitutes for all symbols except Scatter and Coin
+ *   - Scatter: 3+ triggers Free Spins
+ *   - Hold & Win bonus: triggered by 6+ coins on the grid, 3 respins
  *   - 4 Jackpot tiers: MINI, MINOR, MAJOR, GRAND
- *   - Left-to-right pay only, 5 paylines
- *   - Classic fruit theme (no Wild, no Scatter, no Free Spins)
+ *   - Free Spins: 10 free spins awarded by 3+ scatter symbols
+ *   - Left-to-right pay, 10 paylines
+ *   - Egyptian / desert theme
  */
 
 // ── Game Identity ─────────────────────────────────────────────────────────────
 
-export const GAME_ID       = 'thunder-vault';
-export const GAME_BRAND_ID = '95';   // default brand — see RTP_BRAND_MAP below
-export const GAME_NAME     = 'Thunder Vault: Hold & Win';
+export const GAME_ID       = 'sands-of-fortune';
+export const GAME_BRAND_ID = 'tr';
+export const GAME_NAME     = 'Sands of Fortune: Hold & Win';
 
 // ── RTP Brand Configuration ───────────────────────────────────────────────────
 
 /**
- * Maps the numeric Brand ID (used as `brandId` in the launcher API and JWT)
- * to its corresponding theoretical RTP percentage.
- *
- * To run compliance tests for a specific RTP, set GAME_BRAND_ID in .env:
- *   GAME_BRAND_ID=90  → tests the 90.0% RTP variant
- *   GAME_BRAND_ID=93  → tests the 92.5% RTP variant
- *   GAME_BRAND_ID=94  → tests the 94.0% RTP variant
- *   GAME_BRAND_ID=95  → tests the 95.0% RTP variant (default)
+ * ToucanRoyale uses a single brand ID ('tr') with a fixed RTP.
  */
 export const RTP_BRAND_MAP: Record<string, number> = {
-  '90': 90.0,
-  '93': 92.5,
-  '94': 94.0,
-  '95': 95.0,
+  'tr': 96.0,
 };
 
 // ── API ───────────────────────────────────────────────────────────────────────
@@ -55,27 +47,29 @@ export const ROWS  = 3;
 // ── Symbols ───────────────────────────────────────────────────────────────────
 
 /**
- * Symbol ID → name map for Thunder Vault.
+ * Symbol ID → name map for Sands of Fortune.
  *
- * 8 regular fruit/classic symbols + 2 special symbols:
- *   SEVEN (highest), BELL, HORSESHOE, GRAPE — high-value symbols
- *   WATERMELON, LEMON, ORANGE, CHERRY — low-value symbols
- *   COLLECTOR — lightning bolt, appears only on reel 2, gathers Bonus symbols
- *   COIN — gold hexagon, appears only on reels 1 & 3, pays during Bonus Game
+ * Symbol IDs observed from stub.js display arrays and API responses:
+ *   HP symbols: 1-4 (high pay)
+ *   LP symbols: 5-8 (low pay)
+ *   COLLECTOR: 9  (coin/chest — appears in H&W bonus)
+ *   COIN: 10  (prize coin with currency value)
+ *   SCATTER: 11  (triggers free spins)
+ *   WILD: 0  (substitutes for all except scatter/coin)
  */
 export const SYMBOLS: Record<number, string> = {
-  0:    'BLANK',
-  1:    'SEVEN',
-  2:    'BELL',
-  3:    'HORSESHOE',
-  4:    'GRAPE',
-  5:    'WATERMELON',
-  6:    'LEMON',
-  7:    'ORANGE',
-  8:    'CHERRY',
-  9:    'COLLECTOR',
-  10:   'COIN',
-  [-10]: 'STICKY',
+  0:    'WILD',
+  1:    'HP1',      // Pharaoh / highest pay
+  2:    'HP2',      // Anubis
+  3:    'HP3',      // Eye of Horus
+  4:    'HP4',      // Scarab
+  5:    'LP1',      // A
+  6:    'LP2',      // K
+  7:    'LP3',      // Q
+  8:    'LP4',      // J
+  9:    'COLLECTOR', // Coin collector (chest)
+  10:   'COIN',     // Prize coin with value
+  11:   'SCATTER',  // Free spins trigger
 };
 
 /** All valid symbol IDs as a Set for fast membership checks */
@@ -84,56 +78,62 @@ export const VALID_SYMBOL_IDS = new Set(Object.keys(SYMBOLS).map(Number));
 // ── Paylines ──────────────────────────────────────────────────────────────────
 
 /**
- * 5 paylines for the 3×3 grid (left-to-right pay).
+ * 10 paylines for the 5×3 grid (left-to-right pay).
  * Each entry is an array of row indices (0=top, 1=mid, 2=bottom), one per reel.
  */
 export const PAYLINES: readonly number[][] = [
-  [0, 0, 0], // L1 — top row
-  [1, 1, 1], // L2 — middle row
-  [2, 2, 2], // L3 — bottom row
-  [0, 1, 2], // L4 — diagonal down
-  [2, 1, 0], // L5 — diagonal up
+  [1, 1, 1, 1, 1], // L1  — middle row
+  [0, 0, 0, 0, 0], // L2  — top row
+  [2, 2, 2, 2, 2], // L3  — bottom row
+  [0, 1, 2, 1, 0], // L4  — V shape
+  [2, 1, 0, 1, 2], // L5  — inverted V
+  [0, 0, 1, 0, 0], // L6  — slight dip
+  [2, 2, 1, 2, 2], // L7  — slight rise
+  [1, 0, 0, 0, 1], // L8  — U shape
+  [1, 2, 2, 2, 1], // L9  — inverted U
+  [0, 1, 0, 1, 0], // L10 — zigzag
 ];
 
 // ── Hold & Win (Bonus Game) ──────────────────────────────────────────────────
 
 /**
- * The COLLECTOR symbol (lightning bolt) that gathers all Bonus symbols
- * during the Bonus Game. Appears only on reel 2.
+ * The COLLECTOR symbol (chest) that gathers coin values during the bonus.
+ * In Sands of Fortune, COLLECTOR = 10 (COIN symbol).
  */
-export const COLLECTOR_COIN = 9;
+export const COLLECTOR_COIN = 10;
 
 /**
  * Symbol IDs that represent prize coins in the Hold & Win game.
- * COIN (10) = gold hexagon with currency value.
+ * COIN (10) = gold coin/chest with currency value.
  */
 export const PRIZE_COIN_LIST: readonly number[] = [10];
 
 /**
- * Collection thresholds — at least 1 Bonus/Collector on each reel triggers bonus.
+ * Collection thresholds — game-specific progression thresholds for
+ * the coin collection meter.
  */
-export const COLLECTION_THRESHOLDS: readonly number[] = [0, 3, 9];
+export const COLLECTION_THRESHOLDS: readonly number[] = [0, 1, 15, 30, 50];
 
 // ── Jackpots ──────────────────────────────────────────────────────────────────
 
 /**
- * Thunder Vault has 4 jackpot tiers.
- * Multipliers based on bet 1.00: MINI=20x, MINOR=50x, MAJOR=250x, GRAND=500x.
+ * Sands of Fortune has 4 jackpot tiers.
+ * Multipliers based on total bet.
  */
 export const JACKPOTS: Record<string, { name: string; multiplier: number }> = {
-  MINI:  { name: 'MINI',  multiplier: 20  },
-  MINOR: { name: 'MINOR', multiplier: 50  },
-  MAJOR: { name: 'MAJOR', multiplier: 250 },
-  GRAND: { name: 'GRAND', multiplier: 500 },
+  MINI:  { name: 'MINI',  multiplier: 20   },
+  MINOR: { name: 'MINOR', multiplier: 50   },
+  MAJOR: { name: 'MAJOR', multiplier: 200  },
+  GRAND: { name: 'GRAND', multiplier: 500  },
 };
 
 // ── Free Spins ────────────────────────────────────────────────────────────────
 
-/** Thunder Vault has NO free spins — set trigger count impossibly high */
-export const FREE_SPINS_TRIGGER_COUNT = 99;
+/** 3 scatter symbols trigger free spins */
+export const FREE_SPINS_TRIGGER_COUNT = 3;
 
-/** No free spin awards */
-export const FREE_SPINS_AWARDS: readonly number[] = [];
+/** Free spins award: 10 free spins for 3+ scatters */
+export const FREE_SPINS_AWARDS: readonly number[] = [10];
 
 // ── Game Feature Flags ───────────────────────────────────────────────────────
 
@@ -144,11 +144,11 @@ export const FREE_SPINS_AWARDS: readonly number[] = [];
  */
 export const FEATURES = {
   HOLD_AND_WIN:  true,   // Hold & Win bonus (coin collection + respins)
-  FREE_SPINS:    false,  // Free spins / free games feature
+  FREE_SPINS:    true,   // Free spins / free games feature
   JACKPOTS:      true,   // Jackpot tiers (MINI, MINOR, MAJOR, GRAND)
   WILDS:         true,   // Wild symbols
-  SCATTER:       false,  // Scatter symbols
-  PROGRESSION:   false,  // Progression meter (stages 0-3)
+  SCATTER:       true,   // Scatter symbols (triggers free spins)
+  PROGRESSION:   true,   // Progression meter (collection thresholds)
   MULTIPLIERS:   false,  // Multiplying feature during bonus
   PROSPERITY:    false,  // Prosperity spin feature
   BUY_BONUS:     false,  // Buy bonus option
@@ -168,45 +168,60 @@ export const TURBO_TIME_SCALE = 1.5;
  * deterministic outcome.  Unlike mocks, the server state is REAL — which
  * means reload/recovery tests can verify true session restoration.
  *
- * Source: https://cdn2.avocadospins.com/client/rock-and-riches-client/latest/stub.js
+ * Source: https://cdn2.avocadospins.com/client/sands-of-fortune-client/latest/stub.js
  */
 export const DEBUG_TRIGGERS = {
   // ── Progression ──────────────────────────────────────────────────────
-  PSEUDO_PROGRESSION:               'Pseudo progression',
+  PROGRESSION_TEST:                 'progression test',
 
   // ── Anticipation (near-miss) ─────────────────────────────────────────
-  ANTICIPATION_5_COINS:             'Anticipation: 5 coins on first 2 reels',
-  ANTICIPATION_2_COINS_POT:         'Anticipation: 2 coins + pot',
+  ANTICIPATION:                     'anticipation',
 
-  // ── Base Game Coin Collection ────────────────────────────────────────
-  COIN_COLLECT_1:                   'Base Game: Coin Collect - 1 collector',
-  COIN_COLLECT_2:                   'Base Game: Coin Collect - 2 collectors',
-  COIN_COLLECT_3:                   'Base Game: Coin Collect - 3 collectors',
-  COIN_COLLECT_STANDARD_WIN:        'Base Game: Coin Collect + standard win',
-  COIN_COLLECT_WILD_WIN:            'Base Game: Coin Collect + Win with Wild',
+  // ── Regular Wins ─────────────────────────────────────────────────────
+  REGULAR_WIN:                      'regular win',
+  WILD:                             'wild',
+  HP1: 'hp1', HP2: 'hp2', HP3: 'hp3', HP4: 'hp4',
+  LP1: 'lp1', LP2: 'lp2', LP3: 'lp3', LP4: 'lp4',
 
-  // ── Hold & Win Bonus ─────────────────────────────────────────────────
-  HW_1_COLLECTOR:                   'H&W - 1 collector',
-  HW_2_COLLECTORS:                  'H&W - 2 collectors',
-  HW_3_COLLECTORS:                  'H&W - 3 collectors',
-  HW_1_PLUS_2_COLLECTORS:           'H&W - 1 collector + 2 collectors',
-  HW_MAX_WIN:                       'H&W - Max Win',
-  HW_3_COLLECTORS_LOTS_OF_COINS:    'H&W - 3 collectors with a lot of coins',
-  HW_EMPTY_POT:                     'H&W - Get a second pot that never collects any coins',
+  // ── Free Games (Scatter) ─────────────────────────────────────────────
+  FREE_GAMES:                       'free games',
+  FREE_GAMES_WITH_ALL_WINS:         'free games with all wins',
+  FREE_GAMES_COIN_BONUS:            'free games + coin bonus at the same time',
+  FREE_GAMES_TO_COIN_BONUS:         'free games to coin bonus',
+  FREE_GAMES_TO_COIN_BONUS_LAST_FS: 'free games to coin bonus on the last FS',
+  FG_AND_BIG_WIN:                   'FG and Big win at the same time',
+  FG_AND_REGULAR_WIN:               'FG and Regular win at the same time',
+
+  // ── Hold & Win / Coin Bonus ──────────────────────────────────────────
+  COIN_BONUS:                       'coin bonus',
+  COIN_BONUS_NO_EXTRA_CHESTS:       'coin bonus without extra chests',
+  COIN_BONUS_ONE_MINI_GAME:         'coin bonus with one mini game',
+  COIN_BONUS_TWO_MINI_GAMES:        'coin bonus with two mini games',
+  COIN_BONUS_1x3_TO_5x3:           'coin bonus with 1x3 -> 5x3',
+  COIN_BONUS_1x2_TO_2x2_2x3:       'coin bonus with 1x2 -> 2x2 + 2x3',
+  COIN_BONUS_1x2_TO_2x3_2x2:       'coin bonus with 1x2 -> 2x3 + 2x2',
+  COIN_BONUS_1x2_TO_2x2_3x3:       'coin bonus with 1x2 -> 2x2 + 3x3',
+  COIN_BONUS_2x3:                   'coin bonus with 2x3',
+  COIN_BONUS_3x2:                   'coin bonus with 3x2',
+  COIN_BONUS_3x3:                   'coin bonus with 3x3',
+  COIN_BONUS_4x3:                   'coin bonus with 4x3',
+  REGULAR_WIN_COIN_BONUS:           'regular win + coin bonus',
+  HW_AND_BIG_WIN:                   'H&W and Big win at the same time',
+  HW_AND_REGULAR_WIN:               'H&W and regular win at the same time',
+  MINI_GAME_NO_BIG_WIN:             'mini game without big win',
 
   // ── Jackpots ─────────────────────────────────────────────────────────
-  MULTIPLE_JACKPOTS:                'Multiple jackpots at once',
-  MINI_JACKPOT:                     'Mini Jackpot',
-  MINOR_JACKPOT:                    'Minor Jackpot',
-  MAJOR_JACKPOT:                    'Major Jackpot',
-  GRAND_JACKPOT:                    'Grand Jackpot',
+  GRAND_JACKPOT:                    'grand-jackpot',
+  MAJOR_JACKPOT:                    'major-jackpot',
+  MINOR_JACKPOT:                    'minor-jackpot',
+  MINI_JACKPOT:                     'mini-jackpot',
 
-  // ── Big Win Thresholds ───────────────────────────────────────────────
-  ALL_BIG_WIN_THRESHOLDS:           'All Big win thresholds',
-
-  // ── Symbol Wins (High / Low Pay) ─────────────────────────────────────
-  HP1: 'HP1', HP2: 'HP2', HP3: 'HP3',
-  LP1: 'LP1', LP2: 'LP2', LP3: 'LP3', LP4: 'LP4', LP5: 'LP5',
+  // ── Free Games → Hold & Win → Jackpot Combos ────────────────────────
+  FG_HW_GRAND_x10:                  'FG -> H&W & Grand Jackpot x10',
+  FG_HW_1ST_SPIN_JACKPOT:           'FG -> H&W on 1st spin -> Jackpot',
+  FG_HW_1ST_SPIN_NO_JACKPOT:        'FG -> H&W on 1st spin -> Not Jackpot',
+  FG_HW_LAST_SPIN_JACKPOT:          'FG -> H&W on last spin -> Jackpot',
+  FG_HW_LAST_SPIN_NO_JACKPOT:       'FG -> H&W on last spin -> Not Jackpot',
 } as const;
 
 export type DebugTrigger = typeof DEBUG_TRIGGERS[keyof typeof DEBUG_TRIGGERS];

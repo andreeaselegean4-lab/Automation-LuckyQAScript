@@ -84,7 +84,7 @@ test.describe('Hold & Win Bonus Lifecycle — Verify Trigger, Transition, Award,
       return;
     }
 
-    await gamePage.debug.triggerScenario(DEBUG_TRIGGERS.HW_1_COLLECTOR);
+    await gamePage.debug.triggerScenario(DEBUG_TRIGGERS.COIN_BONUS);
     await gamePage.spinAndWait();
     await gamePage.page.waitForTimeout(5_000);
 
@@ -100,7 +100,7 @@ test.describe('Hold & Win Bonus Lifecycle — Verify Trigger, Transition, Award,
       return;
     }
 
-    await gamePage.debug.triggerScenario(DEBUG_TRIGGERS.HW_1_COLLECTOR);
+    await gamePage.debug.triggerScenario(DEBUG_TRIGGERS.COIN_BONUS);
     await gamePage.spinAndWait();
     await gamePage.waitForIdle(120_000);
 
@@ -121,7 +121,7 @@ test.describe('Hold & Win Bonus Lifecycle — Verify Trigger, Transition, Award,
     const balanceBefore = await gamePage.getBalance();
     const startIdx      = gamePage.interceptor.history.length;
 
-    await gamePage.debug.triggerScenario(DEBUG_TRIGGERS.HW_1_COLLECTOR);
+    await gamePage.debug.triggerScenario(DEBUG_TRIGGERS.COIN_BONUS);
     await gamePage.spinAndWait();
     await gamePage.waitForIdle(120_000);
 

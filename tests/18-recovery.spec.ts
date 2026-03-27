@@ -7,12 +7,12 @@
  * real, which means reload/recovery restores from genuine session data.
  *
  * Sections:
- *   1. Base Game Recovery         — balance, bet, currency, regular/big wins, wilds, coin collection
- *   2. H&W Trigger & Bonus       — 1/2/3 collectors, first/middle/last spin recovery
- *   3. Coin Collection Recovery   — coin collect + standard win, coin collect + wild
- *   4. Jackpot Recovery           — mini/minor/major/grand, multiple jackpots
- *   5. Edge Cases                 — max win, empty pot, 3 collectors with many coins
- *   6. Progression                — pseudo progression recovery
+ *   1. Base Game Recovery         — balance, bet, currency, regular/big wins, wilds
+ *   2. H&W Trigger & Bonus       — coin bonus variations, mini games, grid configs
+ *   3. Jackpot Recovery           — mini/minor/major/grand
+ *   4. Free Spins Recovery        — free games, free games + coin bonus combos
+ *   5. Edge Cases & Combinations  — FG→H&W→Jackpot chains, simultaneous triggers
+ *   6. Progression                — progression test recovery
  *
  * Recovery mechanism:
  *   The game server maintains session state via gstoken + localState.
@@ -27,7 +27,6 @@
  *   5. Verify: no JS errors, game recovers to a valid state
  */
 import { test, expect } from '../src/fixtures/game.fixture';
-import { SpinInterceptor } from '../src/utils/spinInterceptor';
 import {
   DEBUG_TRIGGERS, FEATURES,
 } from '../src/constants/game.constants';
@@ -149,16 +148,17 @@ test.describe('Base Game Recovery — Verify State Restoration After Page Reload
     expect(symbolAfter).toBe(symbolBefore);
   });
 
-  test('Verify that on recovery from a regular win (debug HP1) the game returns to idle', async ({ gamePage, gameDebugUrl, consoleErrors }) => {
+  test('Verify that on recovery from a regular win (debug hp1) the game returns to idle', async ({ gamePage, gameDebugUrl, consoleErrors }) => {
     await triggerAndRecover(gamePage, gameDebugUrl, DEBUG_TRIGGERS.HP1, consoleErrors, 5_000);
   });
 
-  test('Verify that on recovery from a big win the game returns to idle', async ({ gamePage, gameDebugUrl, consoleErrors }) => {
-    await triggerAndRecover(gamePage, gameDebugUrl, DEBUG_TRIGGERS.ALL_BIG_WIN_THRESHOLDS, consoleErrors, 5_000);
+  test('Verify that on recovery from a regular win (debug regular win) the game returns to idle', async ({ gamePage, gameDebugUrl, consoleErrors }) => {
+    await triggerAndRecover(gamePage, gameDebugUrl, DEBUG_TRIGGERS.REGULAR_WIN, consoleErrors, 5_000);
   });
 
   test('Verify that on recovery from a win with wilds, the game returns to idle', async ({ gamePage, gameDebugUrl, consoleErrors }) => {
-    await triggerAndRecover(gamePage, gameDebugUrl, DEBUG_TRIGGERS.COIN_COLLECT_WILD_WIN, consoleErrors, 5_000);
+    test.skip(!FEATURES.WILDS, 'Skipped — this game does not have wilds');
+    await triggerAndRecover(gamePage, gameDebugUrl, DEBUG_TRIGGERS.WILD, consoleErrors, 5_000);
   });
 });
 
@@ -171,45 +171,67 @@ test.describe('H&W Trigger & Bonus Recovery — Verify Hold and Win State Restor
   test.skip(!FEATURES.HOLD_AND_WIN, 'Skipped — this game does not have Hold & Win');
   test.setTimeout(5 * 60 * 1_000);
 
-  test('Verify that recovery after H&W with 1 collector does not cause JS errors', async ({ gamePage, gameDebugUrl, consoleErrors }) => {
-    await triggerAndRecover(gamePage, gameDebugUrl, DEBUG_TRIGGERS.HW_1_COLLECTOR, consoleErrors, 5_000);
+  test('Verify that recovery after coin bonus does not cause JS errors', async ({ gamePage, gameDebugUrl, consoleErrors }) => {
+    await triggerAndRecover(gamePage, gameDebugUrl, DEBUG_TRIGGERS.COIN_BONUS, consoleErrors, 5_000);
   });
 
-  test('Verify that recovery after H&W with 2 collectors does not cause JS errors', async ({ gamePage, gameDebugUrl, consoleErrors }) => {
-    await triggerAndRecover(gamePage, gameDebugUrl, DEBUG_TRIGGERS.HW_2_COLLECTORS, consoleErrors, 5_000);
+  test('Verify that recovery after coin bonus without extra chests does not cause JS errors', async ({ gamePage, gameDebugUrl, consoleErrors }) => {
+    await triggerAndRecover(gamePage, gameDebugUrl, DEBUG_TRIGGERS.COIN_BONUS_NO_EXTRA_CHESTS, consoleErrors, 5_000);
   });
 
-  test('Verify that recovery after H&W with 3 collectors does not cause JS errors', async ({ gamePage, gameDebugUrl, consoleErrors }) => {
-    await triggerAndRecover(gamePage, gameDebugUrl, DEBUG_TRIGGERS.HW_3_COLLECTORS, consoleErrors, 5_000);
+  test('Verify that recovery after coin bonus with one mini game does not cause JS errors', async ({ gamePage, gameDebugUrl, consoleErrors }) => {
+    await triggerAndRecover(gamePage, gameDebugUrl, DEBUG_TRIGGERS.COIN_BONUS_ONE_MINI_GAME, consoleErrors, 5_000);
   });
 
-  test('Verify that recovery after H&W with 1+2 collectors does not cause JS errors', async ({ gamePage, gameDebugUrl, consoleErrors }) => {
-    await triggerAndRecover(gamePage, gameDebugUrl, DEBUG_TRIGGERS.HW_1_PLUS_2_COLLECTORS, consoleErrors, 5_000);
+  test('Verify that recovery after coin bonus with two mini games does not cause JS errors', async ({ gamePage, gameDebugUrl, consoleErrors }) => {
+    await triggerAndRecover(gamePage, gameDebugUrl, DEBUG_TRIGGERS.COIN_BONUS_TWO_MINI_GAMES, consoleErrors, 8_000);
   });
 
-  test('Verify that recovery during H&W first spin shows respin state (reload at 5s)', async ({ gamePage, gameDebugUrl, consoleErrors }) => {
-    await triggerAndRecover(gamePage, gameDebugUrl, DEBUG_TRIGGERS.HW_1_COLLECTOR, consoleErrors, 5_000);
+  test('Verify that recovery after coin bonus with 1x3→5x3 grid expansion does not cause JS errors', async ({ gamePage, gameDebugUrl, consoleErrors }) => {
+    await triggerAndRecover(gamePage, gameDebugUrl, DEBUG_TRIGGERS.COIN_BONUS_1x3_TO_5x3, consoleErrors, 8_000);
   });
 
-  test('Verify that recovery during H&W middle spin shows respin state (reload at 12s)', async ({ gamePage, gameDebugUrl, consoleErrors }) => {
-    await triggerAndRecover(gamePage, gameDebugUrl, DEBUG_TRIGGERS.HW_3_COLLECTORS_LOTS_OF_COINS, consoleErrors, 12_000);
+  test('Verify that recovery after coin bonus with 2x3 grid does not cause JS errors', async ({ gamePage, gameDebugUrl, consoleErrors }) => {
+    await triggerAndRecover(gamePage, gameDebugUrl, DEBUG_TRIGGERS.COIN_BONUS_2x3, consoleErrors, 5_000);
   });
 
-  test('Verify that recovery during H&W last spin returns to valid state (reload at 25s)', async ({ gamePage, gameDebugUrl, consoleErrors }) => {
+  test('Verify that recovery after coin bonus with 3x3 grid does not cause JS errors', async ({ gamePage, gameDebugUrl, consoleErrors }) => {
+    await triggerAndRecover(gamePage, gameDebugUrl, DEBUG_TRIGGERS.COIN_BONUS_3x3, consoleErrors, 5_000);
+  });
+
+  test('Verify that recovery after coin bonus with 4x3 grid does not cause JS errors', async ({ gamePage, gameDebugUrl, consoleErrors }) => {
+    await triggerAndRecover(gamePage, gameDebugUrl, DEBUG_TRIGGERS.COIN_BONUS_4x3, consoleErrors, 5_000);
+  });
+
+  test('Verify that recovery after regular win + coin bonus does not cause JS errors', async ({ gamePage, gameDebugUrl, consoleErrors }) => {
+    await triggerAndRecover(gamePage, gameDebugUrl, DEBUG_TRIGGERS.REGULAR_WIN_COIN_BONUS, consoleErrors, 5_000);
+  });
+
+  test('Verify that recovery after H&W and big win at the same time does not cause JS errors', async ({ gamePage, gameDebugUrl, consoleErrors }) => {
+    await triggerAndRecover(gamePage, gameDebugUrl, DEBUG_TRIGGERS.HW_AND_BIG_WIN, consoleErrors, 8_000);
+  });
+
+  test('Verify that recovery after H&W and regular win at the same time does not cause JS errors', async ({ gamePage, gameDebugUrl, consoleErrors }) => {
+    await triggerAndRecover(gamePage, gameDebugUrl, DEBUG_TRIGGERS.HW_AND_REGULAR_WIN, consoleErrors, 5_000);
+  });
+
+  test('Verify that recovery during H&W mid-bonus (reload at 12s) returns to valid state', async ({ gamePage, gameDebugUrl, consoleErrors }) => {
+    await triggerAndRecover(gamePage, gameDebugUrl, DEBUG_TRIGGERS.COIN_BONUS_ONE_MINI_GAME, consoleErrors, 12_000);
+  });
+
+  test('Verify that recovery during H&W late-bonus (reload at 25s) returns to valid state', async ({ gamePage, gameDebugUrl, consoleErrors }) => {
     await navigateDebug(gamePage, gameDebugUrl);
 
     const available = await gamePage.debug.isAvailable();
     if (!available) { test.skip(true, 'Debug mode not available'); return; }
 
-    await gamePage.debug.triggerScenario(DEBUG_TRIGGERS.HW_1_COLLECTOR);
+    await gamePage.debug.triggerScenario(DEBUG_TRIGGERS.COIN_BONUS_NO_EXTRA_CHESTS);
     await gamePage.spin();
-    // Wait long enough for the H&W bonus to be near the end
     await gamePage.page.waitForTimeout(25_000);
 
     await reloadAndWaitForLoad(gamePage);
     await dismissOverlays(gamePage);
 
-    // Game should eventually reach idle or finish the bonus
     try { await gamePage.waitForIdle(30_000); } catch { /* may still be in bonus */ }
 
     const errors = criticalOnly(consoleErrors);
@@ -218,37 +240,7 @@ test.describe('H&W Trigger & Bonus Recovery — Verify Hold and Win State Restor
 });
 
 // ═════════════════════════════════════════════════════════════════════════════
-// 3. COIN COLLECTION RECOVERY (Base Game Coin Collect Events)
-// ═════════════════════════════════════════════════════════════════════════════
-
-test.describe('Coin Collection Recovery — Verify Base Game Coin Collect Events Survive Reload', () => {
-
-  test.skip(!FEATURES.HOLD_AND_WIN, 'Skipped — this game does not have coin collection');
-  test.setTimeout(3 * 60 * 1_000);
-
-  test('Verify that recovery after coin collect with 1 collector does not cause errors', async ({ gamePage, gameDebugUrl, consoleErrors }) => {
-    await triggerAndRecover(gamePage, gameDebugUrl, DEBUG_TRIGGERS.COIN_COLLECT_1, consoleErrors, 5_000);
-  });
-
-  test('Verify that recovery after coin collect with 2 collectors does not cause errors', async ({ gamePage, gameDebugUrl, consoleErrors }) => {
-    await triggerAndRecover(gamePage, gameDebugUrl, DEBUG_TRIGGERS.COIN_COLLECT_2, consoleErrors, 5_000);
-  });
-
-  test('Verify that recovery after coin collect with 3 collectors does not cause errors', async ({ gamePage, gameDebugUrl, consoleErrors }) => {
-    await triggerAndRecover(gamePage, gameDebugUrl, DEBUG_TRIGGERS.COIN_COLLECT_3, consoleErrors, 5_000);
-  });
-
-  test('Verify that recovery after coin collect + standard win does not cause errors', async ({ gamePage, gameDebugUrl, consoleErrors }) => {
-    await triggerAndRecover(gamePage, gameDebugUrl, DEBUG_TRIGGERS.COIN_COLLECT_STANDARD_WIN, consoleErrors, 5_000);
-  });
-
-  test('Verify that recovery after coin collect + win with wild does not cause errors', async ({ gamePage, gameDebugUrl, consoleErrors }) => {
-    await triggerAndRecover(gamePage, gameDebugUrl, DEBUG_TRIGGERS.COIN_COLLECT_WILD_WIN, consoleErrors, 5_000);
-  });
-});
-
-// ═════════════════════════════════════════════════════════════════════════════
-// 4. JACKPOT RECOVERY
+// 3. JACKPOT RECOVERY
 // ═════════════════════════════════════════════════════════════════════════════
 
 test.describe('Jackpot Recovery — Verify Jackpot Award State Survives Page Reload', () => {
@@ -271,56 +263,81 @@ test.describe('Jackpot Recovery — Verify Jackpot Award State Survives Page Rel
   test('Verify that recovery during Grand Jackpot does not cause errors', async ({ gamePage, gameDebugUrl, consoleErrors }) => {
     await triggerAndRecover(gamePage, gameDebugUrl, DEBUG_TRIGGERS.GRAND_JACKPOT, consoleErrors, 5_000);
   });
+});
 
-  test('Verify that recovery during multiple jackpots at once does not cause errors', async ({ gamePage, gameDebugUrl, consoleErrors }) => {
-    await triggerAndRecover(gamePage, gameDebugUrl, DEBUG_TRIGGERS.MULTIPLE_JACKPOTS, consoleErrors, 8_000);
+// ═════════════════════════════════════════════════════════════════════════════
+// 4. FREE SPINS RECOVERY
+// ═════════════════════════════════════════════════════════════════════════════
+
+test.describe('Free Spins Recovery — Verify Free Games State Survives Page Reload', () => {
+
+  test.skip(!FEATURES.FREE_SPINS, 'Skipped — this game does not have free spins');
+  test.setTimeout(5 * 60 * 1_000);
+
+  test('Verify that recovery during free games does not cause errors', async ({ gamePage, gameDebugUrl, consoleErrors }) => {
+    await triggerAndRecover(gamePage, gameDebugUrl, DEBUG_TRIGGERS.FREE_GAMES, consoleErrors, 5_000);
+  });
+
+  test('Verify that recovery during free games with all wins does not cause errors', async ({ gamePage, gameDebugUrl, consoleErrors }) => {
+    await triggerAndRecover(gamePage, gameDebugUrl, DEBUG_TRIGGERS.FREE_GAMES_WITH_ALL_WINS, consoleErrors, 8_000);
+  });
+
+  test('Verify that recovery during free games + coin bonus at the same time does not cause errors', async ({ gamePage, gameDebugUrl, consoleErrors }) => {
+    await triggerAndRecover(gamePage, gameDebugUrl, DEBUG_TRIGGERS.FREE_GAMES_COIN_BONUS, consoleErrors, 8_000);
+  });
+
+  test('Verify that recovery during free games transitioning to coin bonus does not cause errors', async ({ gamePage, gameDebugUrl, consoleErrors }) => {
+    await triggerAndRecover(gamePage, gameDebugUrl, DEBUG_TRIGGERS.FREE_GAMES_TO_COIN_BONUS, consoleErrors, 8_000);
+  });
+
+  test('Verify that recovery during free games to coin bonus on the last FS does not cause errors', async ({ gamePage, gameDebugUrl, consoleErrors }) => {
+    await triggerAndRecover(gamePage, gameDebugUrl, DEBUG_TRIGGERS.FREE_GAMES_TO_COIN_BONUS_LAST_FS, consoleErrors, 12_000);
+  });
+
+  test('Verify that recovery during FG and big win at the same time does not cause errors', async ({ gamePage, gameDebugUrl, consoleErrors }) => {
+    await triggerAndRecover(gamePage, gameDebugUrl, DEBUG_TRIGGERS.FG_AND_BIG_WIN, consoleErrors, 5_000);
+  });
+
+  test('Verify that recovery during FG and regular win at the same time does not cause errors', async ({ gamePage, gameDebugUrl, consoleErrors }) => {
+    await triggerAndRecover(gamePage, gameDebugUrl, DEBUG_TRIGGERS.FG_AND_REGULAR_WIN, consoleErrors, 5_000);
   });
 });
 
 // ═════════════════════════════════════════════════════════════════════════════
-// 5. EDGE CASES & COMBINATIONS
+// 5. EDGE CASES & COMBINATIONS (FG → H&W → Jackpot chains)
 // ═════════════════════════════════════════════════════════════════════════════
 
 test.describe('Recovery Edge Cases — Verify Extreme and Combined Scenarios', () => {
 
-  test.skip(!FEATURES.HOLD_AND_WIN, 'Skipped — this game does not have Hold & Win');
+  test.skip(!FEATURES.HOLD_AND_WIN || !FEATURES.FREE_SPINS, 'Skipped — requires both H&W and Free Spins');
   test.setTimeout(5 * 60 * 1_000);
 
-  test('Verify that recovery after H&W Max Win returns to a valid state', async ({ gamePage, gameDebugUrl, consoleErrors }) => {
-    await navigateDebug(gamePage, gameDebugUrl);
-
-    const available = await gamePage.debug.isAvailable();
-    if (!available) { test.skip(true, 'Debug mode not available'); return; }
-
-    await gamePage.debug.triggerScenario(DEBUG_TRIGGERS.HW_MAX_WIN);
-    await gamePage.spin();
-    // Max win may trigger long celebration — reload mid-animation
-    await gamePage.page.waitForTimeout(8_000);
-
-    await reloadAndWaitForLoad(gamePage);
-    await dismissOverlays(gamePage);
-
-    // Wait for game to settle
-    try { await gamePage.waitForIdle(60_000); } catch { /* may still be in win celebration */ }
-
-    const errors = criticalOnly(consoleErrors);
-    expect(errors).toHaveLength(0);
+  test('Verify that recovery during FG → H&W & Grand Jackpot x10 chain does not cause errors', async ({ gamePage, gameDebugUrl, consoleErrors }) => {
+    await triggerAndRecover(gamePage, gameDebugUrl, DEBUG_TRIGGERS.FG_HW_GRAND_x10, consoleErrors, 10_000);
   });
 
-  test('Verify that recovery after H&W with empty pot (second pot never collects) does not cause errors', async ({ gamePage, gameDebugUrl, consoleErrors }) => {
-    await triggerAndRecover(gamePage, gameDebugUrl, DEBUG_TRIGGERS.HW_EMPTY_POT, consoleErrors, 8_000);
+  test('Verify that recovery during FG → H&W on 1st spin → Jackpot does not cause errors', async ({ gamePage, gameDebugUrl, consoleErrors }) => {
+    await triggerAndRecover(gamePage, gameDebugUrl, DEBUG_TRIGGERS.FG_HW_1ST_SPIN_JACKPOT, consoleErrors, 8_000);
   });
 
-  test('Verify that recovery after H&W with 3 collectors and many coins does not cause errors', async ({ gamePage, gameDebugUrl, consoleErrors }) => {
-    await triggerAndRecover(gamePage, gameDebugUrl, DEBUG_TRIGGERS.HW_3_COLLECTORS_LOTS_OF_COINS, consoleErrors, 8_000);
+  test('Verify that recovery during FG → H&W on 1st spin → Not Jackpot does not cause errors', async ({ gamePage, gameDebugUrl, consoleErrors }) => {
+    await triggerAndRecover(gamePage, gameDebugUrl, DEBUG_TRIGGERS.FG_HW_1ST_SPIN_NO_JACKPOT, consoleErrors, 8_000);
   });
 
-  test('Verify that recovery after anticipation (5 coins on first 2 reels) does not cause errors', async ({ gamePage, gameDebugUrl, consoleErrors }) => {
-    await triggerAndRecover(gamePage, gameDebugUrl, DEBUG_TRIGGERS.ANTICIPATION_5_COINS, consoleErrors, 5_000);
+  test('Verify that recovery during FG → H&W on last spin → Jackpot does not cause errors', async ({ gamePage, gameDebugUrl, consoleErrors }) => {
+    await triggerAndRecover(gamePage, gameDebugUrl, DEBUG_TRIGGERS.FG_HW_LAST_SPIN_JACKPOT, consoleErrors, 12_000);
   });
 
-  test('Verify that recovery after anticipation (2 coins + pot) does not cause errors', async ({ gamePage, gameDebugUrl, consoleErrors }) => {
-    await triggerAndRecover(gamePage, gameDebugUrl, DEBUG_TRIGGERS.ANTICIPATION_2_COINS_POT, consoleErrors, 5_000);
+  test('Verify that recovery during FG → H&W on last spin → Not Jackpot does not cause errors', async ({ gamePage, gameDebugUrl, consoleErrors }) => {
+    await triggerAndRecover(gamePage, gameDebugUrl, DEBUG_TRIGGERS.FG_HW_LAST_SPIN_NO_JACKPOT, consoleErrors, 12_000);
+  });
+
+  test('Verify that recovery after anticipation (near-miss) does not cause errors', async ({ gamePage, gameDebugUrl, consoleErrors }) => {
+    await triggerAndRecover(gamePage, gameDebugUrl, DEBUG_TRIGGERS.ANTICIPATION, consoleErrors, 5_000);
+  });
+
+  test('Verify that recovery after mini game without big win does not cause errors', async ({ gamePage, gameDebugUrl, consoleErrors }) => {
+    await triggerAndRecover(gamePage, gameDebugUrl, DEBUG_TRIGGERS.MINI_GAME_NO_BIG_WIN, consoleErrors, 8_000);
   });
 });
 
@@ -328,15 +345,16 @@ test.describe('Recovery Edge Cases — Verify Extreme and Combined Scenarios', (
 // 6. PROGRESSION RECOVERY
 // ═════════════════════════════════════════════════════════════════════════════
 
-test.describe('Progression Recovery — Verify Pseudo Progression Survives Page Reload', () => {
+test.describe('Progression Recovery — Verify Progression State Survives Page Reload', () => {
 
+  test.skip(!FEATURES.PROGRESSION, 'Skipped — this game does not have progression');
   test.setTimeout(3 * 60 * 1_000);
 
-  test('Verify that recovery during pseudo progression does not cause errors', async ({ gamePage, gameDebugUrl, consoleErrors }) => {
-    await triggerAndRecover(gamePage, gameDebugUrl, DEBUG_TRIGGERS.PSEUDO_PROGRESSION, consoleErrors, 5_000);
+  test('Verify that recovery during progression test does not cause errors', async ({ gamePage, gameDebugUrl, consoleErrors }) => {
+    await triggerAndRecover(gamePage, gameDebugUrl, DEBUG_TRIGGERS.PROGRESSION_TEST, consoleErrors, 5_000);
   });
 
-  test('Verify that balance is preserved after recovery during pseudo progression', async ({ gamePage, gameDebugUrl }) => {
+  test('Verify that balance is preserved after recovery during progression', async ({ gamePage, gameDebugUrl }) => {
     await navigateDebug(gamePage, gameDebugUrl);
 
     const available = await gamePage.debug.isAvailable();
@@ -344,10 +362,9 @@ test.describe('Progression Recovery — Verify Pseudo Progression Survives Page 
 
     const balanceBefore = await gamePage.getBalance();
 
-    await gamePage.debug.triggerScenario(DEBUG_TRIGGERS.PSEUDO_PROGRESSION);
+    await gamePage.debug.triggerScenario(DEBUG_TRIGGERS.PROGRESSION_TEST);
     await gamePage.spinAndWait();
 
-    // Record balance after spin (server-side)
     const balanceAfterSpin = await gamePage.getBalanceStable();
 
     await reloadAndWaitForGame(gamePage);
@@ -355,7 +372,6 @@ test.describe('Progression Recovery — Verify Pseudo Progression Survives Page 
 
     const balanceAfterRecovery = await gamePage.getBalanceStable();
 
-    // Balance after recovery should match balance after the spin completed
     // Tolerance of 2.00 accounts for win payouts still animating when balance was read
     expect(Math.abs(balanceAfterRecovery - balanceAfterSpin)).toBeLessThanOrEqual(2.00);
     expect(await gamePage.isSpinButtonEnabled()).toBe(true);

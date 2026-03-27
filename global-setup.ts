@@ -13,7 +13,7 @@
 
 import * as dotenv from 'dotenv';
 
-const envFile = process.env['ENV'] ? `.env.${process.env['ENV']}` : '.env.NovomaticGames';
+const envFile = process.env['ENV'] ? `.env.${process.env['ENV']}` : '.env.ToucanRoyale';
 dotenv.config({ path: envFile });
 
 const LAUNCHER_BASE = 'https://launcher.avocadospins.com';
